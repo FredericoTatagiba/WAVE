@@ -1,0 +1,15 @@
+## .NET / Visual Studio
+bin/
+obj/
+.vs/
+*.user
+*.suo
+publish/
+artifacts/
+
+## Rider
+.idea/
+
+## App data local (perfis/credenciais/histórico gerados em runtime)
+**/wave-data/
+*.local.json

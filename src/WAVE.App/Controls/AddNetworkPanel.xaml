@@ -1,0 +1,16 @@
+<UserControl x:Class="WAVE.App.Controls.AddNetworkPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Background="#FF0E1621" CornerRadius="8" Padding="10" Margin="0,10,0,0">
+        <StackPanel>
+            <TextBlock Text="Cadastrar rede (admin)" Style="{StaticResource HeadingText}" />
+            <WrapPanel>
+                <TextBox x:Name="DisplayNameBox" Width="150" Height="30" Margin="0,0,8,8" ToolTip="Nome de exibição" />
+                <TextBox x:Name="SsidBox" Width="150" Height="30" Margin="0,0,8,8" ToolTip="SSID" />
+                <ComboBox x:Name="SecurityBox" Width="160" Height="30" Margin="0,0,8,8" ItemsSource="{Binding SecurityOptions}" />
+                <PasswordBox x:Name="PasswordInput" Width="150" Height="30" Margin="0,0,8,8" ToolTip="Senha (redes protegidas)" />
+                <Button Content="Adicionar" Click="OnAddClick" Style="{StaticResource ActionButtonStyle}" />
+            </WrapPanel>
+        </StackPanel>
+    </Border>
+</UserControl>
