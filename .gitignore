@@ -4,11 +4,13 @@ obj/
 .vs/
 *.user
 *.suo
-publish/
 artifacts/
 
 ## Rider
 .idea/
+
+## Publicação (o .exe self-contained passa de 100 MB — distribua via GitHub Releases)
+publish/
 
 ## App data local (perfis/credenciais/histórico gerados em runtime)
 **/wave-data/

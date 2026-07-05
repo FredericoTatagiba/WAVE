@@ -2,7 +2,9 @@
 
 Desktop tool for **automated Wi-Fi connectivity validation on Windows tablets**. It standardizes, speeds up and audits the network checks technicians run during acceptance testing, maintenance or field checklists, cutting human error by bundling several tests behind a single tap.
 
-Built from the `especificacao_tecnica_wifi.pdf` specification and the `RegrasPrimordiaisDeDesenvolvimento.md` guidelines (SOLID, Clean Code, design patterns and security).
+**Download:** [WAVE.exe (Windows x64)](https://github.com/FredericoTatagiba/WAVE/releases/latest/download/WAVE.exe) — single file, no installer. Just download and run.
+
+Built following SOLID and Clean Code principles, with design patterns and security applied where they add value.
 
 ---
 
@@ -69,7 +71,7 @@ src/
   WAVE.Infrastructure  # Windows: netsh, processes, ping, browser, DPAPI, PBKDF2, JSON
   WAVE.App             # WPF front end (MVVM), reusable components, DI composition
 tests/
-  WAVE.UnitTests       # Pure-logic tests (run on any OS)
+  WAVE.UnitTests       # Pure-logic tests
 docs/
   ARQUITETURA.md       # Layer, pattern and spec-mapping details (in Portuguese)
 ```
@@ -78,29 +80,11 @@ Back end and front end are separated; the front end is componentized (network bu
 
 ## Requirements
 
-- **Windows 10 or 11** (x64 or ARM64). Automations use native Windows APIs.
-- **.NET 8 SDK** only to build. The published `.exe` is self-contained and **does not require .NET installed** on the target machine.
+**Windows 10 or 11** (x64 or ARM64). The `.exe` is self-contained — no .NET install needed on the machine that runs it.
 
-## Build, test and run
+## The executable
 
-```powershell
-dotnet build
-dotnet test
-dotnet run --project src/WAVE.App
-```
-
-## Build the single-file `.exe` (self-contained)
-
-```powershell
-./publish.ps1
-```
-
-This produces `publish/win-x64/WAVE.exe` and `publish/win-arm64/WAVE.exe` — each a **single file, no installer**, that runs on any Windows machine of the matching type. Or manually:
-
-```powershell
-dotnet publish src/WAVE.App -c Release -r win-x64 --self-contained true `
-  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/win-x64
-```
+Download the latest **WAVE.exe** from the **[Releases](https://github.com/FredericoTatagiba/WAVE/releases)** page — the single-file, self-contained build is too large to live in the repository. Locally, a build lands at `publish/win-x64/WAVE.exe` (and `publish/win-arm64/WAVE.exe` for ARM devices).
 
 ## First run
 
