@@ -3,7 +3,7 @@ using WAVE.Domain.Security;
 namespace WAVE.Application.Security;
 
 /// <summary>
-/// Mapa estático papel → permissões (fonte única do RBAC). Alterar aqui reflete
+/// Mapa estático papel -> permissões (fonte única do RBAC). Alterar aqui reflete
 /// em todas as camadas, pois a autorização deriva sempre deste mapa.
 /// </summary>
 public static class RolePermissionMap
@@ -21,7 +21,8 @@ public static class RolePermissionMap
                 Permission.RunTest,
                 Permission.ViewHistory,
                 Permission.ManageProfiles,
-                Permission.EditSettings
+                Permission.EditSettings,
+                Permission.ManageUsers
             }
         };
 

@@ -22,10 +22,8 @@ public sealed class MainViewModel : ObservableObject
     private readonly NetworkDiscoveryService _discovery;
     private readonly TestHistoryService _history;
     private readonly ICurrentUserContext _currentUser;
-    private readonly IRoleElevationService _elevation;
     private readonly IUserAlerts _alerts;
     private readonly IAppLogger _logger;
-    private readonly IAdminPasswordManager _adminPassword;
     private readonly TestRunnerOptions _options;
 
     private string _statusMessage = string.Empty;
@@ -38,10 +36,8 @@ public sealed class MainViewModel : ObservableObject
         NetworkDiscoveryService discovery,
         TestHistoryService history,
         ICurrentUserContext currentUser,
-        IRoleElevationService elevation,
         IUserAlerts alerts,
         IAppLogger logger,
-        IAdminPasswordManager adminPassword,
         TestRunnerOptions options)
     {
         _orchestrator = orchestrator;
@@ -49,10 +45,8 @@ public sealed class MainViewModel : ObservableObject
         _discovery = discovery;
         _history = history;
         _currentUser = currentUser;
-        _elevation = elevation;
         _alerts = alerts;
         _logger = logger;
-        _adminPassword = adminPassword;
         _options = options;
 
         Telemetry = new TelemetryViewModel();
@@ -61,7 +55,6 @@ public sealed class MainViewModel : ObservableObject
             StopAsync,
             () => State is TestOperationState.Connecting or TestOperationState.TestRunning);
         ScanCommand = new AsyncRelayCommand(LoadNetworksAsync);
-        ReturnToOperatorCommand = new RelayCommand(_elevation.ReturnToOperator);
 
         _orchestrator.StateChanged += OnStateChanged;
         _orchestrator.PingSampled += OnPingSampled;
@@ -78,7 +71,7 @@ public sealed class MainViewModel : ObservableObject
 
     public bool IsAdministrator => _currentUser.Role == UserRole.Administrator;
 
-    public bool IsOperator => !IsAdministrator;
+    public string CurrentUserText => $"{_currentUser.UserName} · {RoleName}";
 
     public bool HasStatus => !string.IsNullOrEmpty(_statusMessage);
 
@@ -116,8 +109,6 @@ public sealed class MainViewModel : ObservableObject
 
     public IAsyncRelayCommand ScanCommand { get; }
 
-    public IRelayCommand ReturnToOperatorCommand { get; }
-
     public async Task InitializeAsync()
     {
         await LoadNetworksAsync().ConfigureAwait(false);
@@ -126,32 +117,6 @@ public sealed class MainViewModel : ObservableObject
 
     /// <summary>Opções de segurança para o formulário de cadastro (admin).</summary>
     public Array SecurityOptions { get; } = Enum.GetValues(typeof(SecurityType));
-
-    /// <summary>
-    /// Eleva a sessão a Administrador. No primeiro acesso (sem senha configurada),
-    /// a senha informada passa a ser a senha administrativa (bootstrap seguro).
-    /// </summary>
-    public void Elevate(string password)
-    {
-        if (!_adminPassword.IsConfigured)
-        {
-            var setup = _adminPassword.SetInitialPassword(password);
-            if (setup.IsFailure)
-            {
-                _alerts.Error(setup.Error);
-                return;
-            }
-        }
-
-        var result = _elevation.ElevateToAdministrator(password);
-        if (result.IsFailure)
-        {
-            _alerts.Error(result.Error);
-            return;
-        }
-
-        StatusMessage = "Sessão elevada para Administrador.";
-    }
 
     /// <summary>Cadastra/atualiza uma rede (operação de Administrador).</summary>
     public async Task AddNetworkAsync(string displayName, string ssid, SecurityType security, string password)
@@ -306,7 +271,7 @@ public sealed class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(RoleName));
         OnPropertyChanged(nameof(IsAdministrator));
-        OnPropertyChanged(nameof(IsOperator));
+        OnPropertyChanged(nameof(CurrentUserText));
     });
 
     private static void RunOnUi(Action action)

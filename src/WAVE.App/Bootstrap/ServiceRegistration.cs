@@ -9,6 +9,7 @@ using WAVE.Application.Networking;
 using WAVE.Application.Profiles;
 using WAVE.Application.Security;
 using WAVE.Application.Testing;
+using WAVE.Application.Users;
 using WAVE.Infrastructure.Diagnostics;
 using WAVE.Infrastructure.Logging;
 using WAVE.Infrastructure.Persistence;
@@ -38,7 +39,8 @@ public static class ServiceRegistration
         services.AddSingleton(new TestRunnerOptions());
         services.AddSingleton<ICurrentUserContext, CurrentUserContext>();
         services.AddSingleton<IAuthorizationService, AuthorizationService>();
-        services.AddSingleton<IRoleElevationService, RoleElevationService>();
+        services.AddSingleton<AuthenticationService>();
+        services.AddSingleton<UserManagementService>();
         services.AddSingleton<IWifiProfileXmlFactory, WlanProfileXmlBuilder>();
         services.AddSingleton<IWifiTestOrchestrator, WifiTestOrchestrator>();
         services.AddSingleton<NetworkProfileService>();
@@ -61,17 +63,19 @@ public static class ServiceRegistration
         services.AddSingleton<INetworkProfileRepository, JsonNetworkProfileRepository>();
         services.AddSingleton<ITestRunRepository, JsonTestRunRepository>();
         services.AddSingleton<ICredentialStore, DpapiCredentialStore>();
-
-        // Mesma instância atende verificação e gerenciamento da senha administrativa.
-        services.AddSingleton<Pbkdf2AdminPasswordManager>();
-        services.AddSingleton<IAdminPasswordVerifier>(sp => sp.GetRequiredService<Pbkdf2AdminPasswordManager>());
-        services.AddSingleton<IAdminPasswordManager>(sp => sp.GetRequiredService<Pbkdf2AdminPasswordManager>());
+        services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.AddSingleton<IUserRepository, JsonUserRepository>();
     }
 
     private static void AddPresentation(IServiceCollection services)
     {
         services.AddSingleton<IUserAlerts, MessageBoxUserAlerts>();
+        services.AddSingleton<AppNavigator>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
+        services.AddTransient<LoginViewModel>();
+        services.AddTransient<LoginWindow>();
+        services.AddTransient<UserManagementViewModel>();
+        services.AddTransient<UserManagementWindow>();
     }
 }

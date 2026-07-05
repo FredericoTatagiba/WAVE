@@ -6,5 +6,6 @@ public enum Permission
     RunTest,
     ViewHistory,
     ManageProfiles,
-    EditSettings
+    EditSettings,
+    ManageUsers
 }

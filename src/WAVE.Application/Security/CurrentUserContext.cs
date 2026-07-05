@@ -4,8 +4,8 @@ using WAVE.Domain.Security;
 namespace WAVE.Application.Security;
 
 /// <summary>
-/// Contexto de usuário em memória. Inicia como Operador (menor privilégio).
-/// A elevação a Administrador ocorre apenas via <see cref="RoleElevationService"/>.
+/// Contexto de usuário em memória. O papel e a identidade são definidos no
+/// login (ver AuthenticationService).
 /// </summary>
 public sealed class CurrentUserContext : ICurrentUserContext
 {

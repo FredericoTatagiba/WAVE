@@ -1,0 +1,70 @@
+<Window x:Class="WAVE.App.Views.UserManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WAVE — Usuários" Height="560" Width="640"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BrushBackground}" Foreground="{StaticResource BrushText}"
+        FontFamily="Segoe UI">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Usuários" Style="{StaticResource HeadingText}" FontSize="20" />
+
+        <!-- Lista de usuários -->
+        <Border Grid.Row="1" Background="{StaticResource BrushSurface}" CornerRadius="10" Padding="10" Margin="0,4,0,12">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Users}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="#FF0E1621" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                                        <TextBlock Style="{StaticResource MutedText}">
+                                            <Run Text="{Binding Username, Mode=OneWay}" />
+                                            <Run Text=" · " />
+                                            <Run Text="{Binding RoleText, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <Button Content="{Binding ToggleRoleText}" Command="{Binding ToggleRoleCommand}"
+                                                Style="{StaticResource ActionButtonStyle}" Margin="0,0,6,0" />
+                                        <Button Content="Redefinir senha" Click="OnResetClick"
+                                                Style="{StaticResource ActionButtonStyle}" Margin="0,0,6,0" />
+                                        <Button Content="Excluir" Command="{Binding DeleteCommand}"
+                                                Style="{StaticResource ActionButtonStyle}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Formulário: adicionar usuário / redefinir senha -->
+        <Border Grid.Row="2" Background="{StaticResource BrushSurface}" CornerRadius="10" Padding="12">
+            <StackPanel>
+                <TextBlock Text="Adicionar usuário" Style="{StaticResource HeadingText}" />
+                <WrapPanel>
+                    <TextBox x:Name="NewUsername" Width="130" Height="30" Margin="0,0,8,8" ToolTip="Login" />
+                    <TextBox x:Name="NewDisplayName" Width="150" Height="30" Margin="0,0,8,8" ToolTip="Nome de exibição" />
+                    <ComboBox x:Name="NewRole" Width="140" Height="30" Margin="0,0,8,8" ItemsSource="{Binding Roles}" />
+                    <PasswordBox x:Name="PasswordInput" Width="140" Height="30" Margin="0,0,8,8"
+                                 ToolTip="Senha (novo usuário ou redefinição)" />
+                    <Button Content="Adicionar" Click="OnAddClick" Style="{StaticResource ActionButtonStyle}" />
+                </WrapPanel>
+                <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="A mesma senha digitada aqui é usada ao clicar 'Redefinir senha' de um usuário." />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

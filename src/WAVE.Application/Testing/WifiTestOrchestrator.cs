@@ -8,7 +8,7 @@ namespace WAVE.Application.Testing;
 
 /// <summary>
 /// Implementa a pseudológica da especificação como máquina de estados:
-/// IDLE → CONNECTING → (TEST_RUNNING | FAILED). Coordena autorização, encerramento
+/// IDLE -> CONNECTING -> (TEST_RUNNING | FAILED). Coordena autorização, encerramento
 /// de processos, criação de perfil, conexão, validação de DHCP, disparo das rotinas
 /// de teste e registro de histórico. Cada etapa está isolada em um método próprio.
 /// </summary>
@@ -32,7 +32,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     private readonly object _gate = new();
     private readonly List<PingSample> _samples = new();
 
-    private int _running; // 0 = livre, 1 = em execução (reentrância)
+    private int _running;
     private Guid _runId;
     private DateTimeOffset _startedAt;
     private string _ssid = string.Empty;
@@ -90,7 +90,6 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
             return authorization;
         }
 
-        // Bloqueio de reentrância: rejeita novo teste enquanto houver um ativo.
         if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
             return Result.Failure("Já existe um teste em execução.");
@@ -181,14 +180,11 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     {
         SetState(TestOperationState.TestRunning, ssid);
 
-        // 1. Ping contínuo (janela visível + telemetria in-app).
         _visiblePing.Launch(_options.PingTargetHost);
         _pingMonitor.Start(_options.PingTargetHost);
 
-        // 2. Teste de velocidade em janela anônima.
         _browser.Launch(_options.SpeedTestUrl);
 
-        // 3. Vídeo de streaming, após breve intervalo (ordem da especificação).
         await Task.Delay(_options.BetweenLaunchesDelay, cancellationToken).ConfigureAwait(false);
         _browser.Launch(_options.StreamingUrl);
     }

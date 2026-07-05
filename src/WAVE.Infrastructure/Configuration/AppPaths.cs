@@ -17,7 +17,7 @@ public static class AppPaths
 
     public static string CredentialsFile => Path.Combine(RootDirectory, "credentials.dat");
 
-    public static string AdminHashFile => Path.Combine(RootDirectory, "admin.hash");
+    public static string UsersFile => Path.Combine(RootDirectory, "users.json");
 
     public static void EnsureCreated()
     {

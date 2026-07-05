@@ -144,6 +144,48 @@ internal sealed class FakeTestRunRepository : ITestRunRepository
         Task.FromResult<IReadOnlyList<TestRun>>(Added.Take(maxItems).ToList());
 }
 
+internal sealed class FakePasswordHasher : IPasswordHasher
+{
+    private const string Prefix = "hash:";
+
+    public string Hash(string password) => Prefix + password;
+
+    public bool Verify(string password, string hash) => hash == Prefix + password;
+}
+
+internal sealed class FakeUserRepository : IUserRepository
+{
+    private readonly List<(UserAccount User, string Hash)> _users = new();
+
+    public Task<bool> HasAnyAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(_users.Count > 0);
+
+    public Task<IReadOnlyList<UserAccount>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<UserAccount>>(_users.Select(u => u.User).ToList());
+
+    public Task<UserAccount?> FindByUsernameAsync(string username, CancellationToken cancellationToken = default) =>
+        Task.FromResult(_users
+            .Where(u => string.Equals(u.User.Username, username, StringComparison.OrdinalIgnoreCase))
+            .Select(u => u.User)
+            .FirstOrDefault());
+
+    public Task<string?> GetPasswordHashAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(_users.Where(u => u.User.Id == userId).Select(u => u.Hash).FirstOrDefault());
+
+    public Task UpsertAsync(UserAccount user, string passwordHash, CancellationToken cancellationToken = default)
+    {
+        _users.RemoveAll(u => u.User.Id == user.Id);
+        _users.Add((user, passwordHash));
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        _users.RemoveAll(u => u.User.Id == userId);
+        return Task.CompletedTask;
+    }
+}
+
 /// <summary>Relógio que avança um passo fixo a cada leitura (para testar timeouts).</summary>
 internal sealed class AdvancingClock : IClock
 {
