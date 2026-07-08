@@ -131,7 +131,7 @@
                         <DockPanel Grid.Row="2">
                             <TextBlock DockPanel.Dock="Top" Text="Histórico de execuções" Style="{StaticResource HeadingText}" />
                             <TextBlock DockPanel.Dock="Top" Style="{StaticResource MutedText}" Margin="0,0,0,8"
-                                       Text="Velocidade (fast.com) e vídeo (YouTube) abrem em janelas anônimas do navegador." />
+                                       Text="Vazão (download/upload) e estabilidade de streaming são medidas no app e registradas abaixo." />
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <ItemsControl ItemsSource="{Binding History}">
                                     <ItemsControl.ItemTemplate>
@@ -161,6 +161,8 @@
                                                         </TextBlock>
                                                         <TextBlock Text="{Binding AverageLatencyText}" Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
                                                         <TextBlock Text="{Binding PacketLossText}" Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
+                                                        <TextBlock Text="{Binding SpeedText}" Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
+                                                        <TextBlock Text="{Binding StreamingText}" Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
                                                     </StackPanel>
                                                 </Grid>
                                             </Border>

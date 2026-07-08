@@ -1,3 +1,4 @@
+using System.Security;
 using System.Xml.Linq;
 using WAVE.Application.Abstractions;
 using WAVE.Domain.Networking;
@@ -5,9 +6,11 @@ using WAVE.Domain.Networking;
 namespace WAVE.Application.Networking;
 
 /// <summary>
-/// Gera o XML de perfil WLAN do Windows (Factory). Suporta Open, WPA2-Personal e
-/// WPA3-Personal. Enterprise (802.1X) fica como evolução futura.
-/// O uso de <see cref="XElement"/> garante o escape correto de SSID/senha.
+/// Gera o XML de perfil WLAN do Windows (Factory). Suporta Open, WPA2/WPA3-Personal
+/// e WPA2/WPA3-Enterprise (802.1X via PEAP-MSCHAPv2). O uso de <see cref="XElement"/>
+/// garante o escape correto de SSID/senha. As credenciais de usuário (Enterprise)
+/// não vão no perfil: são geradas por <see cref="BuildEapUserData"/> e aplicadas
+/// separadamente ao perfil pelo conector.
 /// </summary>
 public sealed class WlanProfileXmlBuilder : IWifiProfileXmlFactory
 {
@@ -17,15 +20,13 @@ public sealed class WlanProfileXmlBuilder : IWifiProfileXmlFactory
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        if (profile.IsEnterprise)
-        {
-            throw new NotSupportedException(
-                "Perfis Enterprise (802.1X) ainda não são suportados pelo gerador de perfil.");
-        }
-
         var security = new XElement(Ns + "security", BuildAuthEncryption(profile.Security));
 
-        if (profile.RequiresCredential)
+        if (profile.IsEnterprise)
+        {
+            security.Add(XElement.Parse(PeapMschapV2OneX));
+        }
+        else if (profile.RequiresCredential)
         {
             if (secret is null || string.IsNullOrEmpty(secret.Passphrase))
             {
@@ -51,13 +52,63 @@ public sealed class WlanProfileXmlBuilder : IWifiProfileXmlFactory
         return document.Declaration + Environment.NewLine + wlanProfile;
     }
 
+    public string? BuildEapUserData(WifiNetworkProfile profile, WifiSecret? secret)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+
+        if (!profile.IsEnterprise)
+        {
+            return null;
+        }
+
+        if (secret is null || string.IsNullOrEmpty(secret.Passphrase))
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(secret.Username))
+        {
+            throw new InvalidOperationException("Rede Enterprise exige um usuário.");
+        }
+
+        var user = SecurityElement.Escape(secret.Username.Trim());
+        var password = SecurityElement.Escape(secret.Passphrase);
+        var domainLine = string.IsNullOrWhiteSpace(secret.Domain)
+            ? string.Empty
+            : $"\n        <MsChapV2:LogonDomain>{SecurityElement.Escape(secret.Domain.Trim())}</MsChapV2:LogonDomain>";
+
+        return
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+            "<EapHostUserCredentials xmlns=\"http://www.microsoft.com/provisioning/EapHostUserCredentials\" " +
+            "xmlns:eapCommon=\"http://www.microsoft.com/provisioning/EapCommon\" " +
+            "xmlns:baseEap=\"http://www.microsoft.com/provisioning/BaseEapMethodUserCredentials\">\n" +
+            "  <EapMethod>\n" +
+            "    <eapCommon:Type>25</eapCommon:Type>\n" +
+            "    <eapCommon:AuthorId>0</eapCommon:AuthorId>\n" +
+            "  </EapMethod>\n" +
+            "  <Credentials xmlns:eapUser=\"http://www.microsoft.com/provisioning/EapUserPropertiesV1\" " +
+            "xmlns:MsPeap=\"http://www.microsoft.com/provisioning/MsPeapUserPropertiesV1\" " +
+            "xmlns:MsChapV2=\"http://www.microsoft.com/provisioning/MsChapV2UserPropertiesV1\">\n" +
+            "    <MsPeap:Eap>\n" +
+            "      <eapUser:Type>26</eapUser:Type>\n" +
+            "      <MsChapV2:Eap>\n" +
+            $"        <MsChapV2:Username>{user}</MsChapV2:Username>\n" +
+            $"        <MsChapV2:Password>{password}</MsChapV2:Password>{domainLine}\n" +
+            "      </MsChapV2:Eap>\n" +
+            "    </MsPeap:Eap>\n" +
+            "  </Credentials>\n" +
+            "</EapHostUserCredentials>";
+    }
+
     private static XElement BuildAuthEncryption(SecurityType security)
     {
-        var authentication = security switch
+        var (authentication, useOneX) = security switch
         {
-            SecurityType.Open => "open",
-            SecurityType.Wpa2Personal => "WPA2PSK",
-            SecurityType.Wpa3Personal => "WPA3SAE",
+            SecurityType.Open => ("open", false),
+            SecurityType.Wpa2Personal => ("WPA2PSK", false),
+            SecurityType.Wpa3Personal => ("WPA3SAE", false),
+            SecurityType.Wpa2Enterprise => ("WPA2", true),
+            SecurityType.Wpa3Enterprise => ("WPA3ENT", true),
             _ => throw new NotSupportedException($"Segurança não suportada: {security}.")
         };
 
@@ -66,6 +117,50 @@ public sealed class WlanProfileXmlBuilder : IWifiProfileXmlFactory
         return new XElement(Ns + "authEncryption",
             new XElement(Ns + "authentication", authentication),
             new XElement(Ns + "encryption", encryption),
-            new XElement(Ns + "useOneX", "false"));
+            new XElement(Ns + "useOneX", useOneX ? "true" : "false"));
     }
+
+    /// <summary>
+    /// Bloco OneX/EAP para PEAP-MSCHAPv2 (EAP tipo 25 com inner tipo 26). É estático:
+    /// não contém segredos — as credenciais do usuário vão no EAP user data.
+    /// </summary>
+    private const string PeapMschapV2OneX =
+        "<OneX xmlns=\"http://www.microsoft.com/networking/OneX/v1\">" +
+        "<authMode>user</authMode>" +
+        "<EAPConfig>" +
+        "<EapHostConfig xmlns=\"http://www.microsoft.com/provisioning/EapHostConfig\">" +
+        "<EapMethod>" +
+        "<Type xmlns=\"http://www.microsoft.com/provisioning/EapCommon\">25</Type>" +
+        "<VendorId xmlns=\"http://www.microsoft.com/provisioning/EapCommon\">0</VendorId>" +
+        "<VendorType xmlns=\"http://www.microsoft.com/provisioning/EapCommon\">0</VendorType>" +
+        "<AuthorId xmlns=\"http://www.microsoft.com/provisioning/EapCommon\">0</AuthorId>" +
+        "</EapMethod>" +
+        "<Config xmlns=\"http://www.microsoft.com/provisioning/EapHostConfig\">" +
+        "<Eap xmlns=\"http://www.microsoft.com/provisioning/BaseEapConnectionPropertiesV1\">" +
+        "<Type>25</Type>" +
+        "<EapType xmlns=\"http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV1\">" +
+        "<ServerValidation>" +
+        "<DisableUserPromptForServerValidation>true</DisableUserPromptForServerValidation>" +
+        "<ServerNames></ServerNames>" +
+        "</ServerValidation>" +
+        "<FastReconnect>true</FastReconnect>" +
+        "<InnerEapOptional>false</InnerEapOptional>" +
+        "<Eap xmlns=\"http://www.microsoft.com/provisioning/BaseEapConnectionPropertiesV1\">" +
+        "<Type>26</Type>" +
+        "<EapType xmlns=\"http://www.microsoft.com/provisioning/MsChapV2ConnectionPropertiesV1\">" +
+        "<UseWinLogonCredentials>false</UseWinLogonCredentials>" +
+        "</EapType>" +
+        "</Eap>" +
+        "<EnableQuarantineChecks>false</EnableQuarantineChecks>" +
+        "<RequireCryptoBinding>false</RequireCryptoBinding>" +
+        "<PeapExtensions>" +
+        "<PerformServerValidation xmlns=\"http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV2\">false</PerformServerValidation>" +
+        "<AcceptServerName xmlns=\"http://www.microsoft.com/provisioning/MsPeapConnectionPropertiesV2\">false</AcceptServerName>" +
+        "</PeapExtensions>" +
+        "</EapType>" +
+        "</Eap>" +
+        "</Config>" +
+        "</EapHostConfig>" +
+        "</EAPConfig>" +
+        "</OneX>";
 }

@@ -56,6 +56,40 @@ public sealed class NetworkProfileService
         return Result.Success();
     }
 
+    /// <summary>
+    /// Memoriza uma rede recém-selecionada (perfil + credencial) para os próximos
+    /// testes. Diferente de <see cref="SaveAsync"/> (a curadoria do catalogo, que
+    /// e do Administrador), esta e uma acao do operador durante um teste: exige
+    /// apenas <see cref="Permission.RunTest"/>. Assim, ao tocar numa rede ainda
+    /// desconhecida pelo sistema e informar a senha, a rede fica disponível para
+    /// re-testes sem digitar a senha de novo.
+    /// </summary>
+    public async Task<Result> RememberForTestingAsync(
+        WifiNetworkProfile profile, WifiSecret? secret, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+
+        var authorization = _authorization.Authorize(Permission.RunTest);
+        if (authorization.IsFailure)
+        {
+            return authorization;
+        }
+
+        if (profile.RequiresCredential && secret is null)
+        {
+            return Result.Failure("Rede protegida exige uma credencial.");
+        }
+
+        await _repository.SaveAsync(profile, cancellationToken).ConfigureAwait(false);
+
+        if (secret is not null)
+        {
+            await _credentials.SaveAsync(profile.Ssid, secret, cancellationToken).ConfigureAwait(false);
+        }
+
+        return Result.Success();
+    }
+
     public async Task<Result> DeleteAsync(string ssid, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(ssid))

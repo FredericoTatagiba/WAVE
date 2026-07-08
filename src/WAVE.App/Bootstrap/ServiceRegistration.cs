@@ -59,7 +59,8 @@ public static class ServiceRegistration
         services.AddSingleton<IDhcpAddressValidator, NetworkInterfaceDhcpValidator>();
         services.AddSingleton<IContinuousPingMonitor, ContinuousPingMonitor>();
         services.AddSingleton<IVisiblePingTerminal, VisiblePingTerminal>();
-        services.AddSingleton<IPrivateBrowserLauncher, PrivateBrowserLauncher>();
+        services.AddSingleton<ISpeedMeter, HttpSpeedMeter>();
+        services.AddSingleton<IStreamingProbe, HttpStreamingProbe>();
         services.AddSingleton<INetworkProfileRepository, JsonNetworkProfileRepository>();
         services.AddSingleton<ITestRunRepository, JsonTestRunRepository>();
         services.AddSingleton<ICredentialStore, DpapiCredentialStore>();
@@ -70,6 +71,7 @@ public static class ServiceRegistration
     private static void AddPresentation(IServiceCollection services)
     {
         services.AddSingleton<IUserAlerts, MessageBoxUserAlerts>();
+        services.AddSingleton<ICredentialPrompt, CredentialPromptService>();
         services.AddSingleton<AppNavigator>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();

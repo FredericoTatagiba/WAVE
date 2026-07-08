@@ -25,6 +25,8 @@ public sealed class MainViewModel : ObservableObject
     private readonly IUserAlerts _alerts;
     private readonly IAppLogger _logger;
     private readonly TestRunnerOptions _options;
+    private readonly ICredentialStore _credentialStore;
+    private readonly ICredentialPrompt _credentialPrompt;
 
     private string _statusMessage = string.Empty;
     private TestOperationState _state = TestOperationState.Idle;
@@ -38,7 +40,9 @@ public sealed class MainViewModel : ObservableObject
         ICurrentUserContext currentUser,
         IUserAlerts alerts,
         IAppLogger logger,
-        TestRunnerOptions options)
+        TestRunnerOptions options,
+        ICredentialStore credentialStore,
+        ICredentialPrompt credentialPrompt)
     {
         _orchestrator = orchestrator;
         _profiles = profiles;
@@ -48,6 +52,8 @@ public sealed class MainViewModel : ObservableObject
         _alerts = alerts;
         _logger = logger;
         _options = options;
+        _credentialStore = credentialStore;
+        _credentialPrompt = credentialPrompt;
 
         Telemetry = new TelemetryViewModel();
 
@@ -119,7 +125,9 @@ public sealed class MainViewModel : ObservableObject
     public Array SecurityOptions { get; } = Enum.GetValues(typeof(SecurityType));
 
     /// <summary>Cadastra/atualiza uma rede (operação de Administrador).</summary>
-    public async Task AddNetworkAsync(string displayName, string ssid, SecurityType security, string password)
+    public async Task AddNetworkAsync(
+        string displayName, string ssid, SecurityType security, string password,
+        string? username = null, string? domain = null)
     {
         WifiNetworkProfile profile;
         try
@@ -140,7 +148,12 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            var secret = profile.RequiresCredential ? new WifiSecret(password) : null;
+            var secret = profile.RequiresCredential
+                ? new WifiSecret(
+                    password,
+                    profile.IsEnterprise && !string.IsNullOrWhiteSpace(username) ? username.Trim() : null,
+                    profile.IsEnterprise && !string.IsNullOrWhiteSpace(domain) ? domain.Trim() : null)
+                : null;
             var result = await _profiles.SaveAsync(profile, secret).ConfigureAwait(false);
             if (result.IsFailure)
             {
@@ -163,7 +176,20 @@ public sealed class MainViewModel : ObservableObject
         StatusMessage = string.Empty;
         try
         {
-            var result = await _orchestrator.RunTestAsync(button.Profile).ConfigureAwait(false);
+            var profile = button.Profile;
+
+            // Rede protegida ainda desconhecida pelo sistema: exibe o painel de senha
+            // uma vez e memoriza a rede (perfil + credencial) para os próximos testes.
+            // Redes já prontas (abertas, salvas no Windows ou cadastradas) seguem direto.
+            if (profile.RequiresCredential && !button.ReadyToConnect)
+            {
+                if (!await EnsureCredentialSavedAsync(profile).ConfigureAwait(false))
+                {
+                    return;
+                }
+            }
+
+            var result = await _orchestrator.RunTestAsync(profile).ConfigureAwait(false);
             if (result.IsFailure)
             {
                 _alerts.Error(result.Error);
@@ -177,6 +203,37 @@ public sealed class MainViewModel : ObservableObject
             _logger.Error("Erro ao executar o teste de conectividade.", exception);
             _alerts.Error("Erro inesperado ao executar o teste.");
         }
+    }
+
+    /// <summary>
+    /// Garante que a credencial de uma rede desconhecida esteja disponível: se ainda
+    /// não houver, pede a senha no painel e memoriza a rede para testes futuros.
+    /// Retorna false se o operador cancelar ou se a gravação falhar.
+    /// </summary>
+    private async Task<bool> EnsureCredentialSavedAsync(WifiNetworkProfile profile)
+    {
+        var existing = await _credentialStore.GetAsync(profile.Ssid).ConfigureAwait(false);
+        if (existing is not null)
+        {
+            return true;
+        }
+
+        WifiSecret? secret = null;
+        RunOnUi(() => secret = _credentialPrompt.Request(profile));
+        if (secret is null)
+        {
+            return false;
+        }
+
+        var remembered = await _profiles.RememberForTestingAsync(profile, secret).ConfigureAwait(false);
+        if (remembered.IsFailure)
+        {
+            _alerts.Error(remembered.Error);
+            return false;
+        }
+
+        StatusMessage = $"Rede '{profile.DisplayName}' salva para testes futuros.";
+        return true;
     }
 
     private async Task StopAsync()
@@ -195,7 +252,8 @@ public sealed class MainViewModel : ObservableObject
                 Networks.Clear();
                 foreach (var network in networks)
                 {
-                    Networks.Add(new NetworkButtonViewModel(network.Profile, BuildInfo(network), RunNetworkAsync));
+                    Networks.Add(new NetworkButtonViewModel(
+                        network.Profile, BuildInfo(network), network.ReadyToConnect, RunNetworkAsync));
                 }
 
                 StatusMessage = Networks.Count == 0

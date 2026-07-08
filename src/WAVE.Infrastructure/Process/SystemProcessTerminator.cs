@@ -4,41 +4,59 @@ using WAVE.Application.Abstractions;
 namespace WAVE.Infrastructure.Process;
 
 /// <summary>
-/// Encerra processos por nome (sem extensão), conforme os "Pontos de Atenção"
-/// da especificação (evitar acúmulo de RAM entre execuções).
+/// Encerra apenas os processos que o WAVE iniciou, rastreados por PID. Não encerra
+/// mais por nome — isso fechava navegadores/terminais do usuário. Escopo restrito
+/// ao que o app abriu (hoje, a janela de ping).
 /// </summary>
 public sealed class SystemProcessTerminator : IProcessTerminator
 {
     private const int WaitForExitMilliseconds = 2000;
 
     private readonly IAppLogger _logger;
+    private readonly HashSet<int> _tracked = new();
+    private readonly object _gate = new();
 
     public SystemProcessTerminator(IAppLogger logger) => _logger = logger;
 
-    public int TerminateByNames(IReadOnlyCollection<string> processNames)
+    public void Track(int processId)
     {
-        ArgumentNullException.ThrowIfNull(processNames);
+        if (processId <= 0)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            _tracked.Add(processId);
+        }
+    }
+
+    public int TerminateTracked()
+    {
+        int[] ids;
+        lock (_gate)
+        {
+            ids = _tracked.ToArray();
+            _tracked.Clear();
+        }
 
         var terminated = 0;
-
-        foreach (var name in processNames)
+        foreach (var id in ids)
         {
-            foreach (var process in System.Diagnostics.Process.GetProcessesByName(name))
+            try
             {
-                try
-                {
-                    process.Kill(entireProcessTree: true);
-                    process.WaitForExit(WaitForExitMilliseconds);
-                    terminated++;
-                }
-                catch (Exception exception)
-                {
-                    _logger.Warn($"Falha ao encerrar '{name}': {exception.Message}");
-                }
-                finally
-                {
-                    process.Dispose();
-                }
+                using var process = System.Diagnostics.Process.GetProcessById(id);
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(WaitForExitMilliseconds);
+                terminated++;
+            }
+            catch (ArgumentException)
+            {
+                // Processo já não existe: nada a encerrar.
+            }
+            catch (Exception exception)
+            {
+                _logger.Warn($"Falha ao encerrar o processo {id}: {exception.Message}");
             }
         }
 

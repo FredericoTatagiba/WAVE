@@ -99,7 +99,7 @@ Local data lives in `%LOCALAPPDATA%\WAVE`: users (with PBKDF2 password hashes), 
 
 ## Known limitations / next steps
 
-- **Enterprise (802.1X)** networks are not yet supported by the profile generator (Personal and Open are).
-- **Speed (fast.com)** and **streaming (YouTube)** run in browser windows; capturing those numbers automatically in-app is a next step (today the history records ping telemetry).
-- Process termination between runs is by **name** (`cmd`, `msedge`, `chrome`), per the spec — it may close other windows of those processes. The list is configurable in `TestRunnerOptions`.
+- **Enterprise (802.1X)** networks are supported via PEAP-MSCHAPv2 (user/password, optional logon domain); the credentials are applied to the profile through the native WLAN API. Other EAP methods (TLS/certificates) are a next step.
+- **Speed and streaming** are now measured in-app via HTTP: download/upload throughput (Mbps) and a sustained-bitrate streaming stability verdict, both recorded in the history alongside ping telemetry (no browser windows). Endpoints and the target bitrate are configurable in `TestRunnerOptions`.
+- Process termination between runs is **scoped by PID**: WAVE only closes the processes it launched itself (today, the visible ping window), tracked by process id — it never kills the technician's own browsers or terminals.
 - The test video URL is neutral and configurable (avoids hardcoding an example).

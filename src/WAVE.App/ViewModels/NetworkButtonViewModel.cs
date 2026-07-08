@@ -11,10 +11,12 @@ public sealed class NetworkButtonViewModel : ObservableObject
     private TestOperationState _state = TestOperationState.Idle;
     private bool _isEnabled = true;
 
-    public NetworkButtonViewModel(WifiNetworkProfile profile, string info, Func<NetworkButtonViewModel, Task> onRun)
+    public NetworkButtonViewModel(
+        WifiNetworkProfile profile, string info, bool readyToConnect, Func<NetworkButtonViewModel, Task> onRun)
     {
         Profile = profile;
         Info = info;
+        ReadyToConnect = readyToConnect;
         RunCommand = new AsyncRelayCommand(() => onRun(this), () => IsEnabled);
     }
 
@@ -23,6 +25,12 @@ public sealed class NetworkButtonViewModel : ObservableObject
     public string DisplayName => Profile.DisplayName;
 
     public string Ssid => Profile.Ssid;
+
+    /// <summary>
+    /// Rede já conhecida pelo sistema (aberta, salva no Windows ou já cadastrada):
+    /// não é preciso pedir a senha ao selecioná-la.
+    /// </summary>
+    public bool ReadyToConnect { get; }
 
     /// <summary>Linha auxiliar (segurança, prontidão e sinal).</summary>
     public string Info { get; }

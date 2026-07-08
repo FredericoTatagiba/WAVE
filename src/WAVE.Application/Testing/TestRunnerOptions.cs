@@ -9,14 +9,32 @@ public sealed class TestRunnerOptions
     /// <summary>Host alvo do ping contínuo.</summary>
     public string PingTargetHost { get; init; } = "google.com";
 
-    /// <summary>URL do teste de vazão.</summary>
-    public string SpeedTestUrl { get; init; } = "https://fast.com";
+    /// <summary>Endpoint de download para medir vazão (retorna N bytes).</summary>
+    public string SpeedDownloadUrl { get; init; } = "https://speed.cloudflare.com/__down?bytes=52428800";
 
-    /// <summary>
-    /// URL do vídeo de streaming de teste — neutra e configurável
-    /// (evita hardcode do exemplo da especificação).
-    /// </summary>
-    public string StreamingUrl { get; init; } = "https://www.youtube.com/watch?v=aqz-KE-bpKQ";
+    /// <summary>Endpoint de upload para medir vazão (aceita POST).</summary>
+    public string SpeedUploadUrl { get; init; } = "https://speed.cloudflare.com/__up";
+
+    /// <summary>Quantidade de bytes enviados na medição de upload.</summary>
+    public long SpeedUploadBytes { get; init; } = 10_485_760;
+
+    /// <summary>Se false, mede apenas o download.</summary>
+    public bool MeasureUpload { get; init; } = true;
+
+    /// <summary>Tempo máximo para cada medição de vazão.</summary>
+    public TimeSpan SpeedTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>Endpoint baixado de forma sustentada para sondar o streaming.</summary>
+    public string StreamingProbeUrl { get; init; } = "https://speed.cloudflare.com/__down?bytes=104857600";
+
+    /// <summary>Duração total da sonda de streaming.</summary>
+    public TimeSpan StreamingDuration { get; init; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>Intervalo de amostragem da vazão durante a sonda de streaming.</summary>
+    public TimeSpan StreamingSampleInterval { get; init; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>Bitrate-alvo (Mbps) para sustentar a qualidade (ex.: ~8 Mbps p/ 1080p).</summary>
+    public double StreamingTargetMbps { get; init; } = 8;
 
     /// <summary>Tempo de estabilização do hardware após a associação.</summary>
     public TimeSpan StabilizationDelay { get; init; } = TimeSpan.FromSeconds(3);
@@ -26,12 +44,6 @@ public sealed class TestRunnerOptions
 
     /// <summary>Intervalo entre verificações de concessão DHCP.</summary>
     public TimeSpan DhcpPollInterval { get; init; } = TimeSpan.FromSeconds(1);
-
-    /// <summary>Intervalo entre a abertura das ferramentas web.</summary>
-    public TimeSpan BetweenLaunchesDelay { get; init; } = TimeSpan.FromSeconds(2);
-
-    /// <summary>Nomes de processos a encerrar entre execuções (sem extensão).</summary>
-    public IReadOnlyList<string> ProcessesToTerminate { get; init; } = new[] { "cmd", "msedge", "chrome" };
 
     /// <summary>Máximo de itens mantidos no histórico.</summary>
     public int MaxHistoryEntries { get; init; } = 200;

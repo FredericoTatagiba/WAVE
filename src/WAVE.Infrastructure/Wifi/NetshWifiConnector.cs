@@ -56,11 +56,48 @@ public sealed class NetshWifiConnector : IWifiConnector
                 return Result.Failure("Não foi possível criar o perfil de rede no Windows.");
             }
 
+            ApplyEnterpriseCredentials(profile, secret);
             return Result.Success();
         }
         finally
         {
             TryDelete(temporaryFile);
+        }
+    }
+
+    /// <summary>
+    /// Para redes Enterprise (802.1X), aplica as credenciais de usuário (EAP) ao
+    /// perfil recém-criado. Best-effort: falha aqui não impede a conexão — o Windows
+    /// solicitará as credenciais no momento de conectar.
+    /// </summary>
+    private void ApplyEnterpriseCredentials(WifiNetworkProfile profile, WifiSecret? secret)
+    {
+        if (!profile.IsEnterprise)
+        {
+            return;
+        }
+
+        string? eapUserData;
+        try
+        {
+            eapUserData = _profileFactory.BuildEapUserData(profile, secret);
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.Warn($"Credenciais Enterprise incompletas para '{profile.Ssid}': {exception.Message}");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(eapUserData))
+        {
+            return;
+        }
+
+        if (!WlanEapUserData.TryApply(profile.Ssid, eapUserData, _logger))
+        {
+            _logger.Warn(
+                $"Não foi possível aplicar as credenciais Enterprise de '{profile.Ssid}'. " +
+                "O Windows poderá solicitá-las ao conectar.");
         }
     }
 

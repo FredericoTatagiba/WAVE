@@ -16,11 +16,10 @@ public sealed class WifiNetworkProfile
 
     public SecurityType Security { get; }
 
-    public bool IsEnterprise =>
-        Security is SecurityType.Wpa2Enterprise or SecurityType.Wpa3Enterprise;
+    public bool IsEnterprise => Security.IsEnterprise();
 
     /// <summary>Redes abertas não exigem credencial.</summary>
-    public bool RequiresCredential => Security != SecurityType.Open;
+    public bool RequiresCredential => Security.RequiresCredential();
 
     public WifiNetworkProfile(string ssid, string? displayName, SecurityType security)
     {

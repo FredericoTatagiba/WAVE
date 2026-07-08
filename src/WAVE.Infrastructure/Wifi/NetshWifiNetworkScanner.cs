@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using WAVE.Application.Abstractions;
+using WAVE.Application.Networking;
 using WAVE.Domain.Networking;
 using WAVE.Infrastructure.Process;
 
@@ -74,20 +75,8 @@ public sealed class NetshWifiNetworkScanner : IWifiNetworkScanner
         return networks;
     }
 
-    private static SecurityType DetermineSecurity(string blockText)
-    {
-        if (blockText.Contains("WPA3", StringComparison.OrdinalIgnoreCase))
-        {
-            return SecurityType.Wpa3Personal;
-        }
-
-        if (blockText.Contains("WPA", StringComparison.OrdinalIgnoreCase))
-        {
-            return SecurityType.Wpa2Personal;
-        }
-
-        return SecurityType.Open;
-    }
+    private static SecurityType DetermineSecurity(string blockText) =>
+        WifiSecurityParser.FromNetshBlock(blockText);
 
     private static int ExtractSignal(string blockText)
     {

@@ -89,4 +89,14 @@
         <Setter Property="FontSize" Value="12" />
     </Style>
 
+    <!-- Rótulo de campo de formulário: associado ao input via Target (acessibilidade
+         e mnemônicos Alt). Identifica o que preencher em cada campo. -->
+    <Style x:Key="FieldLabel" TargetType="Label">
+        <Setter Property="Foreground" Value="{StaticResource BrushMuted}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+
 </ResourceDictionary>

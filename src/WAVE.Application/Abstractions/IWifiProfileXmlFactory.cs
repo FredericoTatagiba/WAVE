@@ -6,4 +6,11 @@ namespace WAVE.Application.Abstractions;
 public interface IWifiProfileXmlFactory
 {
     string Build(WifiNetworkProfile profile, WifiSecret? secret);
+
+    /// <summary>
+    /// Gera o XML de credenciais de usuário (EAP) para redes Enterprise (802.1X),
+    /// aplicado ao perfil após a criação. Retorna null quando a rede não é
+    /// Enterprise ou não há credencial a aplicar.
+    /// </summary>
+    string? BuildEapUserData(WifiNetworkProfile profile, WifiSecret? secret);
 }

@@ -5,17 +5,20 @@ namespace WAVE.Infrastructure.Diagnostics;
 
 /// <summary>
 /// Abre uma janela de terminal visível com <c>ping host -t</c> para o técnico
-/// acompanhar latência/perda em tempo real. Mantém o processo rastreado para
-/// permitir encerramento limpo.
+/// acompanhar latência/perda em tempo real. Registra o PID no
+/// <see cref="IProcessTerminator"/>, que encerra apenas o que o WAVE abriu —
+/// sem tocar em navegadores/terminais do usuário.
 /// </summary>
 public sealed class VisiblePingTerminal : IVisiblePingTerminal
 {
     private readonly IAppLogger _logger;
-    private readonly object _gate = new();
+    private readonly IProcessTerminator _terminator;
 
-    private System.Diagnostics.Process? _process;
-
-    public VisiblePingTerminal(IAppLogger logger) => _logger = logger;
+    public VisiblePingTerminal(IAppLogger logger, IProcessTerminator terminator)
+    {
+        _logger = logger;
+        _terminator = terminator;
+    }
 
     public void Launch(string host)
     {
@@ -36,9 +39,10 @@ public sealed class VisiblePingTerminal : IVisiblePingTerminal
                 WindowStyle = ProcessWindowStyle.Normal
             };
 
-            lock (_gate)
+            using var process = System.Diagnostics.Process.Start(startInfo);
+            if (process is not null)
             {
-                _process = System.Diagnostics.Process.Start(startInfo);
+                _terminator.Track(process.Id);
             }
         }
         catch (Exception exception)
@@ -47,33 +51,7 @@ public sealed class VisiblePingTerminal : IVisiblePingTerminal
         }
     }
 
-    public void Close()
-    {
-        lock (_gate)
-        {
-            if (_process is null)
-            {
-                return;
-            }
-
-            try
-            {
-                if (!_process.HasExited)
-                {
-                    _process.Kill(entireProcessTree: true);
-                }
-            }
-            catch (Exception exception)
-            {
-                _logger.Warn($"Falha ao encerrar o terminal de ping: {exception.Message}");
-            }
-            finally
-            {
-                _process.Dispose();
-                _process = null;
-            }
-        }
-    }
+    public void Close() => _terminator.TerminateTracked();
 
     private static string SanitizeHost(string host) =>
         new((host ?? string.Empty).Where(c => char.IsLetterOrDigit(c) || c is '.' or '-').ToArray());

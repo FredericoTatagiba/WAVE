@@ -5,11 +5,33 @@
         <StackPanel>
             <TextBlock Text="Cadastrar rede (admin)" Style="{StaticResource HeadingText}" />
             <WrapPanel>
-                <TextBox x:Name="DisplayNameBox" Width="150" Height="30" Margin="0,0,8,8" ToolTip="Nome de exibição" />
-                <TextBox x:Name="SsidBox" Width="150" Height="30" Margin="0,0,8,8" ToolTip="SSID" />
-                <ComboBox x:Name="SecurityBox" Width="160" Height="30" Margin="0,0,8,8" ItemsSource="{Binding SecurityOptions}" />
-                <PasswordBox x:Name="PasswordInput" Width="150" Height="30" Margin="0,0,8,8" ToolTip="Senha (redes protegidas)" />
-                <Button Content="Adicionar" Click="OnAddClick" Style="{StaticResource ActionButtonStyle}" />
+                <StackPanel Margin="0,0,8,8">
+                    <Label Content="_Nome de exibição" Target="{Binding ElementName=DisplayNameBox}" Style="{StaticResource FieldLabel}" />
+                    <TextBox x:Name="DisplayNameBox" Width="150" Height="30" ToolTip="Como a rede aparece no botão de teste (ex.: Loja - Caixa 1)" />
+                </StackPanel>
+                <StackPanel Margin="0,0,8,8">
+                    <Label Content="_SSID" Target="{Binding ElementName=SsidBox}" Style="{StaticResource FieldLabel}" />
+                    <TextBox x:Name="SsidBox" Width="150" Height="30" ToolTip="Nome técnico da rede Wi-Fi (SSID), exatamente como transmitido" />
+                </StackPanel>
+                <StackPanel Margin="0,0,8,8">
+                    <Label Content="Se_gurança" Target="{Binding ElementName=SecurityBox}" Style="{StaticResource FieldLabel}" />
+                    <ComboBox x:Name="SecurityBox" Width="160" Height="30" ItemsSource="{Binding SecurityOptions}"
+                              SelectionChanged="OnSecurityChanged"
+                              ToolTip="Tipo de segurança da rede (Open, WPA2/WPA3 Personal ou Enterprise)" />
+                </StackPanel>
+                <StackPanel x:Name="PasswordField" Margin="0,0,8,8" Visibility="Collapsed">
+                    <Label Content="Sen_ha / Passphrase" Target="{Binding ElementName=PasswordInput}" Style="{StaticResource FieldLabel}" />
+                    <PasswordBox x:Name="PasswordInput" Width="150" Height="30" ToolTip="Senha da rede (obrigatória em redes protegidas)" />
+                </StackPanel>
+                <StackPanel x:Name="UsernameField" Margin="0,0,8,8" Visibility="Collapsed">
+                    <Label Content="_Usuário (enterprise)" Target="{Binding ElementName=UsernameBox}" Style="{StaticResource FieldLabel}" />
+                    <TextBox x:Name="UsernameBox" Width="150" Height="30" ToolTip="Usuário de autenticação (apenas redes WPA2/WPA3 Enterprise)" />
+                </StackPanel>
+                <StackPanel x:Name="DomainField" Margin="0,0,8,8" Visibility="Collapsed">
+                    <Label Content="_Domínio (enterprise)" Target="{Binding ElementName=DomainBox}" Style="{StaticResource FieldLabel}" />
+                    <TextBox x:Name="DomainBox" Width="150" Height="30" ToolTip="Domínio de autenticação (apenas redes WPA2/WPA3 Enterprise)" />
+                </StackPanel>
+                <Button Content="_Adicionar" Click="OnAddClick" Style="{StaticResource ActionButtonStyle}" VerticalAlignment="Bottom" Margin="0,0,8,8" />
             </WrapPanel>
         </StackPanel>
     </Border>

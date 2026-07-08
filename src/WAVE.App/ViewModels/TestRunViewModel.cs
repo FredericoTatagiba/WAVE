@@ -16,6 +16,38 @@ public sealed class TestRunViewModel
         AverageLatencyText = run.Ping.Received > 0
             ? $"{run.Ping.AvgMs.ToString("0", CultureInfo.CurrentCulture)} ms"
             : "—";
+        SpeedText = FormatSpeed(run.Speed);
+        StreamingText = FormatStreaming(run.Streaming);
+    }
+
+    private static string FormatSpeed(SpeedResult? speed)
+    {
+        if (speed is not { } value)
+        {
+            return "—";
+        }
+
+        var down = value.DownloadMbps.ToString("0.#", CultureInfo.CurrentCulture);
+        var up = value.UploadMbps.ToString("0.#", CultureInfo.CurrentCulture);
+        return value.UploadMbps > 0 ? $"↓ {down} / ↑ {up} Mbps" : $"↓ {down} Mbps";
+    }
+
+    private static string FormatStreaming(StreamingObservation? streaming)
+    {
+        if (streaming is not { } value)
+        {
+            return "—";
+        }
+
+        var label = value.Stability switch
+        {
+            StreamingStability.Smooth => "Estável",
+            StreamingStability.MinorBuffering => "Travadas leves",
+            StreamingStability.Unstable => "Instável",
+            _ => "—"
+        };
+
+        return value.RebufferEvents > 0 ? $"{label} ({value.RebufferEvents})" : label;
     }
 
     public string Ssid { get; }
@@ -29,4 +61,10 @@ public sealed class TestRunViewModel
     public string PacketLossText { get; }
 
     public string AverageLatencyText { get; }
+
+    /// <summary>Vazão medida (download/upload), ou "—" quando não capturada.</summary>
+    public string SpeedText { get; }
+
+    /// <summary>Estabilidade de streaming, ou "—" quando não capturada.</summary>
+    public string StreamingText { get; }
 }

@@ -20,10 +20,10 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     private readonly IWifiConnector _connector;
     private readonly IWifiProfileCatalog _catalog;
     private readonly IDhcpAddressValidator _dhcp;
-    private readonly IProcessTerminator _terminator;
     private readonly IVisiblePingTerminal _visiblePing;
     private readonly IContinuousPingMonitor _pingMonitor;
-    private readonly IPrivateBrowserLauncher _browser;
+    private readonly ISpeedMeter _speedMeter;
+    private readonly IStreamingProbe _streamingProbe;
     private readonly ITestRunRepository _history;
     private readonly IClock _clock;
     private readonly IAppLogger _logger;
@@ -37,6 +37,8 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     private DateTimeOffset _startedAt;
     private string _ssid = string.Empty;
     private string _operatorName = string.Empty;
+    private SpeedResult? _speed;
+    private StreamingObservation? _streaming;
 
     public WifiTestOrchestrator(
         IAuthorizationService authorization,
@@ -45,10 +47,10 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         IWifiConnector connector,
         IWifiProfileCatalog catalog,
         IDhcpAddressValidator dhcp,
-        IProcessTerminator terminator,
         IVisiblePingTerminal visiblePing,
         IContinuousPingMonitor pingMonitor,
-        IPrivateBrowserLauncher browser,
+        ISpeedMeter speedMeter,
+        IStreamingProbe streamingProbe,
         ITestRunRepository history,
         IClock clock,
         IAppLogger logger,
@@ -60,10 +62,10 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         _connector = connector;
         _catalog = catalog;
         _dhcp = dhcp;
-        _terminator = terminator;
         _visiblePing = visiblePing;
         _pingMonitor = pingMonitor;
-        _browser = browser;
+        _speedMeter = speedMeter;
+        _streamingProbe = streamingProbe;
         _history = history;
         _clock = clock;
         _logger = logger;
@@ -99,8 +101,6 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         {
             BeginSession(profile);
             SetState(TestOperationState.Connecting, profile.Ssid);
-
-            _terminator.TerminateByNames(_options.ProcessesToTerminate);
 
             // Reaproveita o perfil que o Windows já tem salvo: nesses casos não é
             // preciso recriar o perfil nem informar a senha novamente.
@@ -162,7 +162,6 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
 
         await _pingMonitor.StopAsync().ConfigureAwait(false);
         _visiblePing.Close();
-        _terminator.TerminateByNames(_options.ProcessesToTerminate);
         await PersistRunAsync(TestOperationState.Idle, TestFailureReason.None).ConfigureAwait(false);
         EndSession();
         SetState(TestOperationState.Idle, null);
@@ -183,10 +182,37 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         _visiblePing.Launch(_options.PingTargetHost);
         _pingMonitor.Start(_options.PingTargetHost);
 
-        _browser.Launch(_options.SpeedTestUrl);
+        // Mede vazão e estabilidade de streaming no próprio app (sem navegador) e
+        // registra os números para auditoria. Falhas são toleradas: o teste segue e
+        // o campo correspondente fica sem valor.
+        await MeasureSpeedAsync(cancellationToken).ConfigureAwait(false);
+        await MeasureStreamingAsync(cancellationToken).ConfigureAwait(false);
+    }
 
-        await Task.Delay(_options.BetweenLaunchesDelay, cancellationToken).ConfigureAwait(false);
-        _browser.Launch(_options.StreamingUrl);
+    private async Task MeasureSpeedAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _speed = await _speedMeter.MeasureAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _logger.Warn($"Falha ao medir a vazão: {exception.Message}");
+        }
+    }
+
+    private async Task MeasureStreamingAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var samples = await _streamingProbe.SampleAsync(cancellationToken).ConfigureAwait(false);
+            _streaming = StreamingStabilityEvaluator.Evaluate(
+                samples, _options.StreamingTargetMbps, _clock.Now);
+        }
+        catch (Exception exception)
+        {
+            _logger.Warn($"Falha ao sondar o streaming: {exception.Message}");
+        }
     }
 
     private async Task<WifiSecret?> ResolveCredentialAsync(WifiNetworkProfile profile, CancellationToken cancellationToken)
@@ -219,6 +245,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     private async Task<Result> FailAsync(TestFailureReason reason, string message)
     {
         await _pingMonitor.StopAsync().ConfigureAwait(false);
+        _visiblePing.Close();
         await PersistRunAsync(TestOperationState.Failed, reason).ConfigureAwait(false);
         Interlocked.Exchange(ref _running, 0);
         SetState(TestOperationState.Failed, _ssid, reason, message);
@@ -250,6 +277,8 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         _startedAt = _clock.Now;
         _ssid = profile.Ssid;
         _operatorName = _currentUser.UserName;
+        _speed = null;
+        _streaming = null;
 
         lock (_gate)
         {
@@ -281,7 +310,9 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
             FinishedAt = _clock.Now,
             FinalState = finalState,
             FailureReason = reason,
-            Ping = statistics
+            Ping = statistics,
+            Speed = _speed,
+            Streaming = _streaming
         };
 
         try

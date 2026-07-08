@@ -68,7 +68,7 @@ Atende a regra 4 de `RegrasPrimordiaisDeDesenvolvimento.md`. Gerenciar perfis e 
 | Criar perfil se não existir | `WlanProfileXmlBuilder` + `NetshWifiConnector.EnsureProfileAsync` |
 | Conectar via Windows | `NetshWifiConnector` (`netsh wlan connect`) |
 | Timeout DHCP 15s | `DhcpAddressValidator` + `TestRunnerOptions.DhcpTimeout` |
-| Matar cmd/msedge/chrome antes do teste | `SystemProcessTerminator` |
+| Encerrar só o que o WAVE abriu (janela de ping, por PID) | `SystemProcessTerminator` (escopo por PID) + `VisiblePingTerminal` |
 | Ping contínuo visível | `VisiblePingTerminalLauncher` (`cmd /c start ping -t`) |
 | Latência ao vivo no app | `ContinuousPingService` (.NET `Ping`) → `PingLatencyChart` |
 | fast.com anônimo | `FastComSpeedTestLauncher` (Edge `--inprivate`) |

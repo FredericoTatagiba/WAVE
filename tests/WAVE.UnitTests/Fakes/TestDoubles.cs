@@ -24,14 +24,49 @@ internal sealed class FakeCredentialStore : ICredentialStore
 
     public FakeCredentialStore(WifiSecret? secret = null) => _secret = secret;
 
-    public Task SaveAsync(string ssid, WifiSecret secret, CancellationToken cancellationToken = default) =>
-        Task.CompletedTask;
+    /// <summary>Segredos gravados via <see cref="SaveAsync"/>, indexados por SSID.</summary>
+    public Dictionary<string, WifiSecret> Saved { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public Task SaveAsync(string ssid, WifiSecret secret, CancellationToken cancellationToken = default)
+    {
+        Saved[ssid] = secret;
+        return Task.CompletedTask;
+    }
 
     public Task<WifiSecret?> GetAsync(string ssid, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_secret);
+        Task.FromResult(Saved.TryGetValue(ssid, out var stored) ? stored : _secret);
 
-    public Task DeleteAsync(string ssid, CancellationToken cancellationToken = default) =>
-        Task.CompletedTask;
+    public Task DeleteAsync(string ssid, CancellationToken cancellationToken = default)
+    {
+        Saved.Remove(ssid);
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class FakeNetworkProfileRepository : INetworkProfileRepository
+{
+    private readonly Dictionary<string, WifiNetworkProfile> _profiles = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Perfis atualmente persistidos.</summary>
+    public IReadOnlyCollection<WifiNetworkProfile> Profiles => _profiles.Values;
+
+    public Task<IReadOnlyList<WifiNetworkProfile>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<WifiNetworkProfile>>(_profiles.Values.ToList());
+
+    public Task<WifiNetworkProfile?> FindAsync(string ssid, CancellationToken cancellationToken = default) =>
+        Task.FromResult(_profiles.TryGetValue(ssid, out var profile) ? profile : null);
+
+    public Task SaveAsync(WifiNetworkProfile profile, CancellationToken cancellationToken = default)
+    {
+        _profiles[profile.Ssid] = profile;
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(string ssid, CancellationToken cancellationToken = default)
+    {
+        _profiles.Remove(ssid);
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class FakeWifiConnector : IWifiConnector
@@ -78,17 +113,6 @@ internal sealed class FakeDhcpValidator : IDhcpAddressValidator
         Task.FromResult(_hasLease);
 }
 
-internal sealed class FakeProcessTerminator : IProcessTerminator
-{
-    public int Calls { get; private set; }
-
-    public int TerminateByNames(IReadOnlyCollection<string> processNames)
-    {
-        Calls++;
-        return 0;
-    }
-}
-
 internal sealed class FakeVisiblePingTerminal : IVisiblePingTerminal
 {
     public string? LaunchedHost { get; private set; }
@@ -128,6 +152,38 @@ internal sealed class FakeBrowserLauncher : IPrivateBrowserLauncher
     public List<string> LaunchedUrls { get; } = new();
 
     public void Launch(string url) => LaunchedUrls.Add(url);
+}
+
+internal sealed class FakeSpeedMeter : ISpeedMeter
+{
+    private readonly SpeedResult _result;
+
+    public FakeSpeedMeter(SpeedResult? result = null) =>
+        _result = result ?? new SpeedResult(120.5, 30.2, DateTimeOffset.UnixEpoch);
+
+    public bool Called { get; private set; }
+
+    public Task<SpeedResult> MeasureAsync(CancellationToken cancellationToken = default)
+    {
+        Called = true;
+        return Task.FromResult(_result);
+    }
+}
+
+internal sealed class FakeStreamingProbe : IStreamingProbe
+{
+    private readonly IReadOnlyList<double> _samples;
+
+    public FakeStreamingProbe(IReadOnlyList<double>? samples = null) =>
+        _samples = samples ?? new double[] { 20, 22, 19, 25 };
+
+    public bool Called { get; private set; }
+
+    public Task<IReadOnlyList<double>> SampleAsync(CancellationToken cancellationToken = default)
+    {
+        Called = true;
+        return Task.FromResult(_samples);
+    }
 }
 
 internal sealed class FakeTestRunRepository : ITestRunRepository

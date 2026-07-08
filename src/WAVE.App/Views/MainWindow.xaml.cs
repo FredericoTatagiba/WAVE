@@ -23,12 +23,11 @@ public partial class MainWindow : Window
 
     private async void OnLogoutClick(object sender, RoutedEventArgs e)
     {
-        if (!_navigator.Authenticate(this))
+        // Fecha (oculta) a página anterior, faz login e recarrega o estado do novo
+        // usuário. Se cancelado, o navegador encerra o app.
+        if (_navigator.Logout(this))
         {
-            System.Windows.Application.Current.Shutdown();
-            return;
+            await _viewModel.InitializeAsync();
         }
-
-        await _viewModel.InitializeAsync();
     }
 }

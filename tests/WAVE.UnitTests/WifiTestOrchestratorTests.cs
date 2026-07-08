@@ -18,7 +18,7 @@ public class WifiTestOrchestratorTests
         StabilizationDelay = TimeSpan.Zero,
         DhcpTimeout = TimeSpan.FromSeconds(1),
         DhcpPollInterval = TimeSpan.FromMilliseconds(1),
-        BetweenLaunchesDelay = TimeSpan.Zero
+        StreamingTargetMbps = 8
     };
 
     private static WifiTestOrchestrator Build(
@@ -27,11 +27,12 @@ public class WifiTestOrchestratorTests
         FakeDhcpValidator dhcp,
         FakeVisiblePingTerminal visiblePing,
         FakePingMonitor pingMonitor,
-        FakeBrowserLauncher browser,
         FakeTestRunRepository history,
         IClock clock,
         TestRunnerOptions options,
-        FakeWifiProfileCatalog? catalog = null) =>
+        FakeWifiProfileCatalog? catalog = null,
+        FakeSpeedMeter? speedMeter = null,
+        FakeStreamingProbe? streamingProbe = null) =>
         new(
             authorization,
             new CurrentUserContext(),
@@ -39,10 +40,10 @@ public class WifiTestOrchestratorTests
             connector,
             catalog ?? new FakeWifiProfileCatalog(),
             dhcp,
-            new FakeProcessTerminator(),
             visiblePing,
             pingMonitor,
-            browser,
+            speedMeter ?? new FakeSpeedMeter(),
+            streamingProbe ?? new FakeStreamingProbe(),
             history,
             clock,
             new NullLogger(),
@@ -57,7 +58,6 @@ public class WifiTestOrchestratorTests
             new FakeDhcpValidator(true),
             new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
-            new FakeBrowserLauncher(),
             new FakeTestRunRepository(),
             new AdvancingClock(TimeSpan.Zero),
             FastOptions());
@@ -69,11 +69,12 @@ public class WifiTestOrchestratorTests
     }
 
     [Fact]
-    public async Task RunTest_HappyPath_ReachesTestRunningAndLaunchesTools()
+    public async Task RunTest_HappyPath_ReachesTestRunningAndMeasures()
     {
         var visiblePing = new FakeVisiblePingTerminal();
         var pingMonitor = new FakePingMonitor();
-        var browser = new FakeBrowserLauncher();
+        var speedMeter = new FakeSpeedMeter();
+        var streamingProbe = new FakeStreamingProbe();
         var options = FastOptions();
 
         var orchestrator = Build(
@@ -82,10 +83,11 @@ public class WifiTestOrchestratorTests
             new FakeDhcpValidator(true),
             visiblePing,
             pingMonitor,
-            browser,
             new FakeTestRunRepository(),
             new AdvancingClock(TimeSpan.Zero),
-            options);
+            options,
+            speedMeter: speedMeter,
+            streamingProbe: streamingProbe);
 
         var result = await orchestrator.RunTestAsync(OpenProfile());
 
@@ -93,8 +95,39 @@ public class WifiTestOrchestratorTests
         Assert.Equal(TestOperationState.TestRunning, orchestrator.CurrentState);
         Assert.True(pingMonitor.Started);
         Assert.Equal(options.PingTargetHost, visiblePing.LaunchedHost);
-        Assert.Contains(options.SpeedTestUrl, browser.LaunchedUrls);
-        Assert.Contains(options.StreamingUrl, browser.LaunchedUrls);
+        Assert.True(speedMeter.Called);
+        Assert.True(streamingProbe.Called);
+    }
+
+    [Fact]
+    public async Task RunThenStop_RecordsSpeedAndStreaming()
+    {
+        var history = new FakeTestRunRepository();
+        var speedMeter = new FakeSpeedMeter(new SpeedResult(150, 40, DateTimeOffset.UnixEpoch));
+        var streamingProbe = new FakeStreamingProbe(new double[] { 20, 22, 25, 21 }); // todas >= 8 => Smooth
+
+        var orchestrator = Build(
+            new FakeAuthorizationService(allow: true),
+            new FakeWifiConnector(),
+            new FakeDhcpValidator(true),
+            new FakeVisiblePingTerminal(),
+            new FakePingMonitor(),
+            history,
+            new AdvancingClock(TimeSpan.Zero),
+            FastOptions(),
+            speedMeter: speedMeter,
+            streamingProbe: streamingProbe);
+
+        await orchestrator.RunTestAsync(OpenProfile());
+        await orchestrator.StopAsync();
+
+        var run = Assert.Single(history.Added);
+        Assert.NotNull(run.Speed);
+        Assert.Equal(150, run.Speed!.Value.DownloadMbps);
+        Assert.Equal(40, run.Speed!.Value.UploadMbps);
+        Assert.NotNull(run.Streaming);
+        Assert.Equal(StreamingStability.Smooth, run.Streaming!.Value.Stability);
+        Assert.Equal(0, run.Streaming!.Value.RebufferEvents);
     }
 
     [Fact]
@@ -108,7 +141,6 @@ public class WifiTestOrchestratorTests
             new FakeDhcpValidator(false),
             new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
-            new FakeBrowserLauncher(),
             history,
             new AdvancingClock(TimeSpan.FromSeconds(30)),
             FastOptions());
@@ -133,7 +165,6 @@ public class WifiTestOrchestratorTests
             new FakeDhcpValidator(true),
             new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
-            new FakeBrowserLauncher(),
             history,
             new AdvancingClock(TimeSpan.Zero),
             FastOptions());
@@ -149,7 +180,6 @@ public class WifiTestOrchestratorTests
     [Fact]
     public async Task RunTest_WhenWindowsKnowsProfile_SkipsCredentialAndSucceeds()
     {
-        // Rede protegida, sem credencial cadastrada no WAVE, mas já salva no Windows.
         var profile = new WifiNetworkProfile("Corporativa", "Corporativa", SecurityType.Wpa2Personal);
 
         var orchestrator = Build(
@@ -158,7 +188,6 @@ public class WifiTestOrchestratorTests
             new FakeDhcpValidator(true),
             new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
-            new FakeBrowserLauncher(),
             new FakeTestRunRepository(),
             new AdvancingClock(TimeSpan.Zero),
             FastOptions(),
