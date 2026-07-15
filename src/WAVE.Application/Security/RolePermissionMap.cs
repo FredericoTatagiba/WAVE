@@ -3,8 +3,8 @@ using WAVE.Domain.Security;
 namespace WAVE.Application.Security;
 
 /// <summary>
-/// Mapa estático papel -> permissões (fonte única do RBAC). Alterar aqui reflete
-/// em todas as camadas, pois a autorização deriva sempre deste mapa.
+/// Static role -> permissions map (single source of RBAC). Changing it here reflects
+/// across all layers, since authorization always derives from this map.
 /// </summary>
 public static class RolePermissionMap
 {

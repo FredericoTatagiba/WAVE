@@ -2,9 +2,9 @@ using WAVE.Domain.Networking;
 
 namespace WAVE.App.Services;
 
-/// <summary>Solicita ao usuário a credencial de uma rede protegida (diálogo modal).</summary>
+/// <summary>Asks the user for the credential of a protected network (modal dialog).</summary>
 public interface ICredentialPrompt
 {
-    /// <summary>Retorna a credencial informada, ou null se o usuário cancelar.</summary>
+    /// <summary>Returns the entered credential, or null if the user cancels.</summary>
     WifiSecret? Request(WifiNetworkProfile profile);
 }

@@ -2,7 +2,7 @@ using WAVE.Domain.Networking;
 
 namespace WAVE.Application.Abstractions;
 
-/// <summary>Armazena/recupera segredos de rede de forma cifrada (DPAPI).</summary>
+/// <summary>Stores/retrieves network secrets in encrypted form (DPAPI).</summary>
 public interface ICredentialStore
 {
     Task SaveAsync(string ssid, WifiSecret secret, CancellationToken cancellationToken = default);

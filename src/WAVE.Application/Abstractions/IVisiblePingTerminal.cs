@@ -1,8 +1,8 @@
 namespace WAVE.Application.Abstractions;
 
 /// <summary>
-/// Abre a janela de terminal com ping contínuo visível ao técnico
-/// (persistência do terminal exigida pela especificação).
+/// Opens the terminal window with a continuous ping visible to the technician
+/// (terminal persistence required by the specification).
 /// </summary>
 public interface IVisiblePingTerminal
 {

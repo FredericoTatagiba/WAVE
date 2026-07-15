@@ -1,6 +1,6 @@
 namespace WAVE.Application.Abstractions;
 
-/// <summary>Gera e verifica hashes de senha (algoritmo forte, com sal).</summary>
+/// <summary>Generates and verifies password hashes (strong algorithm, salted).</summary>
 public interface IPasswordHasher
 {
     string Hash(string password);

@@ -5,9 +5,9 @@ using WAVE.Application.Testing;
 namespace WAVE.Infrastructure.Web;
 
 /// <summary>
-/// Sonda de streaming: baixa um fluxo sustentado por um período e amostra a vazão
-/// (Mbps) em cada intervalo. Não interpreta os dados — a classificação de
-/// estabilidade fica em <see cref="StreamingStabilityEvaluator"/> (lógica pura).
+/// Streaming probe: downloads a sustained stream for a period and samples the throughput
+/// (Mbps) in each interval. It does not interpret the data — the stability classification
+/// lives in <see cref="StreamingStabilityEvaluator"/> (pure logic).
 /// </summary>
 public sealed class HttpStreamingProbe : IStreamingProbe
 {
@@ -19,8 +19,8 @@ public sealed class HttpStreamingProbe : IStreamingProbe
     {
         var samples = new List<double>();
 
-        // A duração é controlada pelo laço; o timeout do cliente fica desligado para
-        // não interromper o fluxo antes da hora.
+        // The duration is controlled by the loop; the client timeout is disabled so it
+        // does not interrupt the stream prematurely.
         using var client = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
 
         using var response = await client

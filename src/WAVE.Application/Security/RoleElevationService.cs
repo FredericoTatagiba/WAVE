@@ -1,1 +1,1 @@
-// Obsoleto: substituído por AuthenticationService (login) e UserManagementService.
+// Obsolete: replaced by AuthenticationService (login) and UserManagementService.

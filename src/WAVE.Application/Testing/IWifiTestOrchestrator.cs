@@ -18,8 +18,16 @@ public interface IWifiTestOrchestrator
 
     event EventHandler<PingSample>? PingSampled;
 
-    /// <summary>Executa o fluxo de conexão + validação para a rede informada.</summary>
-    Task<Result> RunTestAsync(WifiNetworkProfile profile, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Runs the connect + validation flow for the given network. A credential just
+    /// entered by the operator can be passed in <paramref name="providedSecret"/> for
+    /// use during this test only; it must be remembered by the caller only after a
+    /// confirmed success.
+    /// </summary>
+    Task<Result> RunTestAsync(
+        WifiNetworkProfile profile,
+        WifiSecret? providedSecret = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Encerra o teste em andamento e retorna ao estado ocioso.</summary>
     Task StopAsync(CancellationToken cancellationToken = default);

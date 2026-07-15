@@ -1,1 +1,1 @@
-// Obsoleto: substituído por Pbkdf2PasswordHasher + JsonUserRepository.
+// Obsolete: replaced by Pbkdf2PasswordHasher + JsonUserRepository.

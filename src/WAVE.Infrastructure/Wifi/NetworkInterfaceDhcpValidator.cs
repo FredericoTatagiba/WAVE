@@ -6,8 +6,8 @@ using WAVE.Application.Abstractions;
 namespace WAVE.Infrastructure.Wifi;
 
 /// <summary>
-/// Confirma que algum adaptador Wi-Fi ativo possui IPv4 roteável (não-APIPA) e
-/// gateway — indicativo de concessão DHCP válida.
+/// Confirms that some active Wi-Fi adapter has a routable IPv4 (non-APIPA) and
+/// a gateway — an indication of a valid DHCP lease.
 /// </summary>
 public sealed class NetworkInterfaceDhcpValidator : IDhcpAddressValidator
 {

@@ -6,10 +6,10 @@ using WAVE.Domain.Testing;
 namespace WAVE.Infrastructure.Web;
 
 /// <summary>
-/// Mede a vazão (download e, opcionalmente, upload) via HTTP, sem navegador. Baixa
-/// N bytes de um endpoint configurável cronometrando a transferência e converte para
-/// Mbps com <see cref="ThroughputCalculator"/>. Lança em erro de rede (o orquestrador
-/// tolera e registra a execução sem o valor).
+/// Measures throughput (download and, optionally, upload) over HTTP, without a browser.
+/// Downloads N bytes from a configurable endpoint timing the transfer and converts to
+/// Mbps with <see cref="ThroughputCalculator"/>. Throws on network error (the orchestrator
+/// tolerates it and records the run without the value).
 /// </summary>
 public sealed class HttpSpeedMeter : ISpeedMeter
 {

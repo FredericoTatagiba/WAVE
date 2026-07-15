@@ -77,14 +77,29 @@ internal sealed class FakeWifiConnector : IWifiConnector
 
     public bool Connected { get; private set; }
 
+    /// <summary>SSIDs whose profile was rolled back via <see cref="RemoveProfileAsync"/>.</summary>
+    public List<string> RemovedProfiles { get; } = new();
+
+    /// <summary>Secret last passed to <see cref="EnsureProfileAsync"/>.</summary>
+    public WifiSecret? EnsuredSecret { get; private set; }
+
     public Task<Result> EnsureProfileAsync(
-        WifiNetworkProfile profile, WifiSecret? secret, CancellationToken cancellationToken = default) =>
-        Task.FromResult(EnsureResult);
+        WifiNetworkProfile profile, WifiSecret? secret, CancellationToken cancellationToken = default)
+    {
+        EnsuredSecret = secret;
+        return Task.FromResult(EnsureResult);
+    }
 
     public Task<Result> ConnectAsync(string ssid, CancellationToken cancellationToken = default)
     {
         Connected = true;
         return Task.FromResult(ConnectResult);
+    }
+
+    public Task RemoveProfileAsync(string ssid, CancellationToken cancellationToken = default)
+    {
+        RemovedProfiles.Add(ssid);
+        return Task.CompletedTask;
     }
 
     public Task DisconnectAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;

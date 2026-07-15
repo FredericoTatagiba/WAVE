@@ -8,8 +8,8 @@ using WAVE.Infrastructure.Configuration;
 namespace WAVE.Infrastructure.Persistence;
 
 /// <summary>
-/// Armazena segredos de rede cifrados com DPAPI (escopo do usuário atual).
-/// Os segredos nunca são gravados em texto claro.
+/// Stores network secrets encrypted with DPAPI (current-user scope).
+/// The secrets are never written in clear text.
 /// </summary>
 public sealed class DpapiCredentialStore : ICredentialStore
 {
@@ -62,7 +62,7 @@ public sealed class DpapiCredentialStore : ICredentialStore
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao recuperar credencial.", exception);
+            _logger.Error("Failed to retrieve credential.", exception);
             return null;
         }
         finally
@@ -107,7 +107,7 @@ public sealed class DpapiCredentialStore : ICredentialStore
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao ler credenciais; retornando vazio.", exception);
+            _logger.Error("Failed to read credentials; returning empty.", exception);
             return new Dictionary<string, string>(StringComparer.Ordinal);
         }
     }

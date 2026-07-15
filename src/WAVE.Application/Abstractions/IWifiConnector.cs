@@ -16,5 +16,12 @@ public interface IWifiConnector
     /// <summary>Solicita a conexão com o SSID informado.</summary>
     Task<Result> ConnectAsync(string ssid, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Removes the network profile from Windows. Used to roll back a just-created
+    /// profile when the connection is not confirmed (e.g. wrong password), preventing
+    /// an invalid credential from being remembered. Best-effort.
+    /// </summary>
+    Task RemoveProfileAsync(string ssid, CancellationToken cancellationToken = default);
+
     Task DisconnectAsync(CancellationToken cancellationToken = default);
 }

@@ -2,15 +2,15 @@ using WAVE.Domain.Networking;
 
 namespace WAVE.Application.Abstractions;
 
-/// <summary>Gera o XML de perfil WLAN do Windows a partir de um perfil de rede.</summary>
+/// <summary>Builds the Windows WLAN profile XML from a network profile.</summary>
 public interface IWifiProfileXmlFactory
 {
     string Build(WifiNetworkProfile profile, WifiSecret? secret);
 
     /// <summary>
-    /// Gera o XML de credenciais de usuário (EAP) para redes Enterprise (802.1X),
-    /// aplicado ao perfil após a criação. Retorna null quando a rede não é
-    /// Enterprise ou não há credencial a aplicar.
+    /// Builds the EAP user-credentials XML for Enterprise (802.1X) networks,
+    /// applied to the profile after creation. Returns null when the network is not
+    /// Enterprise or there is no credential to apply.
     /// </summary>
     string? BuildEapUserData(WifiNetworkProfile profile, WifiSecret? secret);
 }

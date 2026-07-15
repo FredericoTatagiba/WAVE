@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace WAVE.Infrastructure.Persistence;
 
-/// <summary>Opções de serialização JSON compartilhadas pela persistência.</summary>
+/// <summary>JSON serialization options shared across persistence.</summary>
 internal static class WaveJson
 {
     public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.General)

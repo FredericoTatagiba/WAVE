@@ -1,6 +1,6 @@
 namespace WAVE.Application.Abstractions;
 
-/// <summary>Fonte de tempo abstraída para permitir testes determinísticos.</summary>
+/// <summary>Abstracted time source to allow deterministic tests.</summary>
 public interface IClock
 {
     DateTimeOffset Now { get; }

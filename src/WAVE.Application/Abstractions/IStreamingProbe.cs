@@ -1,10 +1,10 @@
 namespace WAVE.Application.Abstractions;
 
 /// <summary>
-/// Sonda de streaming: baixa um fluxo sustentado por um período e retorna a vazão
-/// (Mbps) medida em cada intervalo. A classificação de estabilidade é feita por
-/// <see cref="Testing.StreamingStabilityEvaluator"/> (lógica pura), mantendo esta
-/// abstração restrita ao IO.
+/// Streaming probe: downloads a sustained stream for a period and returns the
+/// throughput (Mbps) measured in each interval. The stability classification is done by
+/// <see cref="Testing.StreamingStabilityEvaluator"/> (pure logic), keeping this
+/// abstraction restricted to IO.
 /// </summary>
 public interface IStreamingProbe
 {

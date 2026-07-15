@@ -1,6 +1,6 @@
 namespace WAVE.Domain.Testing;
 
-/// <summary>Classificação de estabilidade do streaming de teste.</summary>
+/// <summary>Stability classification for the test streaming.</summary>
 public enum StreamingStability
 {
     Unknown,
@@ -9,7 +9,7 @@ public enum StreamingStability
     Unstable
 }
 
-/// <summary>Observação de estabilidade do vídeo de teste (YouTube).</summary>
+/// <summary>Stability observation for the test video (YouTube).</summary>
 public readonly record struct StreamingObservation(
     StreamingStability Stability,
     int RebufferEvents,

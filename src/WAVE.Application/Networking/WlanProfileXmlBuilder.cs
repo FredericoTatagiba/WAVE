@@ -6,11 +6,11 @@ using WAVE.Domain.Networking;
 namespace WAVE.Application.Networking;
 
 /// <summary>
-/// Gera o XML de perfil WLAN do Windows (Factory). Suporta Open, WPA2/WPA3-Personal
-/// e WPA2/WPA3-Enterprise (802.1X via PEAP-MSCHAPv2). O uso de <see cref="XElement"/>
-/// garante o escape correto de SSID/senha. As credenciais de usuário (Enterprise)
-/// não vão no perfil: são geradas por <see cref="BuildEapUserData"/> e aplicadas
-/// separadamente ao perfil pelo conector.
+/// Builds the Windows WLAN profile XML (Factory). Supports Open, WPA2/WPA3-Personal
+/// and WPA2/WPA3-Enterprise (802.1X via PEAP-MSCHAPv2). Using <see cref="XElement"/>
+/// guarantees correct escaping of SSID/password. The user credentials (Enterprise)
+/// do not go in the profile: they are built by <see cref="BuildEapUserData"/> and applied
+/// separately to the profile by the connector.
 /// </summary>
 public sealed class WlanProfileXmlBuilder : IWifiProfileXmlFactory
 {
@@ -121,8 +121,8 @@ public sealed class WlanProfileXmlBuilder : IWifiProfileXmlFactory
     }
 
     /// <summary>
-    /// Bloco OneX/EAP para PEAP-MSCHAPv2 (EAP tipo 25 com inner tipo 26). É estático:
-    /// não contém segredos — as credenciais do usuário vão no EAP user data.
+    /// OneX/EAP block for PEAP-MSCHAPv2 (EAP type 25 with inner type 26). It is static:
+    /// it contains no secrets — the user credentials go in the EAP user data.
     /// </summary>
     private const string PeapMschapV2OneX =
         "<OneX xmlns=\"http://www.microsoft.com/networking/OneX/v1\">" +

@@ -5,9 +5,9 @@ using WAVE.Domain.Security;
 namespace WAVE.Application.Users;
 
 /// <summary>
-/// Casos de uso de gestão de usuários (apenas Administrador). Toda operação é
-/// validada por <see cref="Permission.ManageUsers"/> na camada de aplicação.
-/// Protege o último administrador contra remoção/rebaixamento.
+/// User management use cases (Administrator only). Every operation is validated
+/// by <see cref="Permission.ManageUsers"/> at the application layer.
+/// Protects the last administrator against removal/demotion.
 /// </summary>
 public sealed class UserManagementService
 {

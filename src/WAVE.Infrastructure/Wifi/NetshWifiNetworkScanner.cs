@@ -8,9 +8,9 @@ using WAVE.Infrastructure.Process;
 namespace WAVE.Infrastructure.Wifi;
 
 /// <summary>
-/// Varre redes visíveis via <c>netsh wlan show networks</c>. A análise foca em
-/// tokens estáveis (o rótulo "SSID N :" e os padrões "WPA2"/"WPA3"/"%"), evitando
-/// depender de textos localizados do Windows.
+/// Scans visible networks via <c>netsh wlan show networks</c>. Parsing focuses on
+/// stable tokens (the "SSID N :" label and the "WPA2"/"WPA3"/"%" patterns), avoiding
+/// dependence on localized Windows text.
 /// </summary>
 public sealed class NetshWifiNetworkScanner : IWifiNetworkScanner
 {
@@ -33,7 +33,7 @@ public sealed class NetshWifiNetworkScanner : IWifiNetworkScanner
 
         if (!result.Succeeded)
         {
-            _logger.Warn($"netsh show networks falhou: {result.StandardOutput} {result.StandardError}");
+            _logger.Warn($"netsh show networks failed: {result.StandardOutput} {result.StandardError}");
             return Array.Empty<AvailableNetwork>();
         }
 

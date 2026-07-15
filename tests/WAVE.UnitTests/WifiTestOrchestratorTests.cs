@@ -13,6 +13,8 @@ public class WifiTestOrchestratorTests
 {
     private static WifiNetworkProfile OpenProfile() => new("RedeAberta", "Rede Aberta", SecurityType.Open);
 
+    private static WifiNetworkProfile ProtectedProfile() => new("Protegida", "Protegida", SecurityType.Wpa2Personal);
+
     private static TestRunnerOptions FastOptions() => new()
     {
         StabilizationDelay = TimeSpan.Zero,
@@ -175,6 +177,91 @@ public class WifiTestOrchestratorTests
         Assert.Equal(TestOperationState.Failed, orchestrator.CurrentState);
         Assert.Single(history.Added);
         Assert.Equal(TestFailureReason.AuthenticationFailed, history.Added[0].FailureReason);
+    }
+
+    [Fact]
+    public async Task RunTest_WhenNewProfileFailsToConfirm_RollsBackProfileAndUsesProvidedSecret()
+    {
+        // A protected network unknown to Windows: the operator's password is used only
+        // for this run. When the connection is not confirmed (DHCP never leases, e.g. a
+        // wrong password), WAVE must delete the profile it just created so the bad
+        // credential is not remembered and the network asks for the password again.
+        var connector = new FakeWifiConnector();
+        var providedSecret = new WifiSecret("wrong-password");
+
+        var orchestrator = Build(
+            new FakeAuthorizationService(allow: true),
+            connector,
+            new FakeDhcpValidator(false),
+            new FakeVisiblePingTerminal(),
+            new FakePingMonitor(),
+            new FakeTestRunRepository(),
+            new AdvancingClock(TimeSpan.FromSeconds(30)),
+            FastOptions(),
+            new FakeWifiProfileCatalog(exists: false));
+
+        var result = await orchestrator.RunTestAsync(ProtectedProfile(), providedSecret);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(providedSecret, connector.EnsuredSecret);
+        Assert.Contains("Protegida", connector.RemovedProfiles);
+    }
+
+    [Fact]
+    public async Task RunTest_WhenKnownProfileFails_DoesNotRollBackProfile()
+    {
+        // Windows already knows the profile (pre-existing / admin-registered): WAVE did
+        // not create it this run, so a transient failure must NOT delete it.
+        var connector = new FakeWifiConnector();
+
+        var orchestrator = Build(
+            new FakeAuthorizationService(allow: true),
+            connector,
+            new FakeDhcpValidator(false),
+            new FakeVisiblePingTerminal(),
+            new FakePingMonitor(),
+            new FakeTestRunRepository(),
+            new AdvancingClock(TimeSpan.FromSeconds(30)),
+            FastOptions(),
+            new FakeWifiProfileCatalog(exists: true));
+
+        var result = await orchestrator.RunTestAsync(ProtectedProfile());
+
+        Assert.True(result.IsFailure);
+        Assert.Empty(connector.RemovedProfiles);
+    }
+
+    [Fact]
+    public async Task RunTest_WhenNewProfileSucceeds_KeepsProfileAndDoesNotSelfPersist()
+    {
+        // On a confirmed success the created profile is kept (no rollback). Persisting
+        // the credential is the caller's job; the orchestrator never writes it itself.
+        var connector = new FakeWifiConnector();
+        var credentialStore = new FakeCredentialStore();
+        var providedSecret = new WifiSecret("right-password");
+
+        var orchestrator = new WifiTestOrchestrator(
+            new FakeAuthorizationService(allow: true),
+            new CurrentUserContext(),
+            credentialStore,
+            connector,
+            new FakeWifiProfileCatalog(exists: false),
+            new FakeDhcpValidator(true),
+            new FakeVisiblePingTerminal(),
+            new FakePingMonitor(),
+            new FakeSpeedMeter(),
+            new FakeStreamingProbe(),
+            new FakeTestRunRepository(),
+            new AdvancingClock(TimeSpan.Zero),
+            new NullLogger(),
+            FastOptions());
+
+        var result = await orchestrator.RunTestAsync(ProtectedProfile(), providedSecret);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(providedSecret, connector.EnsuredSecret);
+        Assert.Empty(connector.RemovedProfiles);
+        Assert.Empty(credentialStore.Saved);
     }
 
     [Fact]

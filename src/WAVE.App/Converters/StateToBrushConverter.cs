@@ -5,7 +5,7 @@ using WAVE.Domain.Testing;
 
 namespace WAVE.App.Converters;
 
-/// <summary>Converte o estado da operação no pincel de feedback visual correspondente.</summary>
+/// <summary>Converts the operation state into the corresponding visual-feedback brush.</summary>
 public sealed class StateToBrushConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)

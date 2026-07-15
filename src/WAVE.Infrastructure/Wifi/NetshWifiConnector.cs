@@ -6,9 +6,9 @@ using WAVE.Infrastructure.Process;
 namespace WAVE.Infrastructure.Wifi;
 
 /// <summary>
-/// Integração com o Wi-Fi do Windows via <c>netsh wlan</c>: cria o perfil (se
-/// necessário) e solicita a associação. A confirmação real de conectividade é
-/// feita depois pela validação de DHCP.
+/// Integration with Windows Wi-Fi via <c>netsh wlan</c>: creates the profile (if
+/// needed) and requests the association. The real connectivity confirmation is
+/// done later by DHCP validation.
 /// </summary>
 public sealed class NetshWifiConnector : IWifiConnector
 {
@@ -40,7 +40,7 @@ public sealed class NetshWifiConnector : IWifiConnector
         }
         catch (Exception exception)
         {
-            _logger.Error("Erro ao gerar o perfil de rede.", exception);
+            _logger.Error("Error building the network profile.", exception);
             return Result.Failure("Erro ao gerar o perfil de rede.");
         }
 
@@ -52,7 +52,7 @@ public sealed class NetshWifiConnector : IWifiConnector
 
             if (!result.Succeeded)
             {
-                _logger.Warn($"netsh add profile falhou: {result.StandardOutput} {result.StandardError}");
+                _logger.Warn($"netsh add profile failed: {result.StandardOutput} {result.StandardError}");
                 return Result.Failure("Não foi possível criar o perfil de rede no Windows.");
             }
 
@@ -66,9 +66,9 @@ public sealed class NetshWifiConnector : IWifiConnector
     }
 
     /// <summary>
-    /// Para redes Enterprise (802.1X), aplica as credenciais de usuário (EAP) ao
-    /// perfil recém-criado. Best-effort: falha aqui não impede a conexão — o Windows
-    /// solicitará as credenciais no momento de conectar.
+    /// For Enterprise (802.1X) networks, applies the user credentials (EAP) to the
+    /// just-created profile. Best-effort: a failure here does not prevent the connection —
+    /// Windows will prompt for the credentials at connect time.
     /// </summary>
     private void ApplyEnterpriseCredentials(WifiNetworkProfile profile, WifiSecret? secret)
     {
@@ -84,7 +84,7 @@ public sealed class NetshWifiConnector : IWifiConnector
         }
         catch (InvalidOperationException exception)
         {
-            _logger.Warn($"Credenciais Enterprise incompletas para '{profile.Ssid}': {exception.Message}");
+            _logger.Warn($"Incomplete Enterprise credentials for '{profile.Ssid}': {exception.Message}");
             return;
         }
 
@@ -96,8 +96,8 @@ public sealed class NetshWifiConnector : IWifiConnector
         if (!WlanEapUserData.TryApply(profile.Ssid, eapUserData, _logger))
         {
             _logger.Warn(
-                $"Não foi possível aplicar as credenciais Enterprise de '{profile.Ssid}'. " +
-                "O Windows poderá solicitá-las ao conectar.");
+                $"Could not apply the Enterprise credentials for '{profile.Ssid}'. " +
+                "Windows may prompt for them at connect time.");
         }
     }
 
@@ -116,11 +116,30 @@ public sealed class NetshWifiConnector : IWifiConnector
 
         if (!result.Succeeded)
         {
-            _logger.Warn($"netsh connect falhou: {result.StandardOutput} {result.StandardError}");
+            _logger.Warn($"netsh connect failed: {result.StandardOutput} {result.StandardError}");
             return Result.Failure("Falha ao solicitar a conexão com a rede.");
         }
 
         return Result.Success();
+    }
+
+    public async Task RemoveProfileAsync(string ssid, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(ssid))
+        {
+            return;
+        }
+
+        var safeSsid = ssid.Replace("\"", string.Empty);
+
+        var result = await _executor.RunAsync(
+            "netsh", $"wlan delete profile name=\"{safeSsid}\"", cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!result.Succeeded)
+        {
+            _logger.Warn($"netsh delete profile failed: {result.StandardOutput} {result.StandardError}");
+        }
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default) =>
@@ -137,7 +156,7 @@ public sealed class NetshWifiConnector : IWifiConnector
         }
         catch (Exception exception)
         {
-            _logger.Warn($"Não foi possível remover o arquivo temporário de perfil: {exception.Message}");
+            _logger.Warn($"Could not remove the temporary profile file: {exception.Message}");
         }
     }
 }

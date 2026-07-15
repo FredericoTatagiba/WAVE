@@ -22,8 +22,8 @@ using WAVE.Infrastructure.Wifi;
 namespace WAVE.App.Bootstrap;
 
 /// <summary>
-/// Registra todas as dependências por camada. O Composition Root conhece as
-/// implementações concretas; o restante do código depende apenas de abstrações.
+/// Registers all dependencies per layer. The Composition Root knows the concrete
+/// implementations; the rest of the code depends only on abstractions.
 /// </summary>
 public static class ServiceRegistration
 {

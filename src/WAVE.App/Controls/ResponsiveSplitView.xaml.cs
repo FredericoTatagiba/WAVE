@@ -4,9 +4,9 @@ using System.Windows.Controls;
 namespace WAVE.App.Controls;
 
 /// <summary>
-/// Componente de layout que exibe dois conteúdos lado a lado em paisagem
-/// (lista à esquerda, gráficos à direita) e empilhados em retrato (lista em cima,
-/// gráficos abaixo), conforme a regra de interface do projeto.
+/// Layout component that shows two contents side by side in landscape (list on the
+/// left, charts on the right) and stacked in portrait (list on top, charts below),
+/// following the project's interface rule.
 /// </summary>
 public partial class ResponsiveSplitView : UserControl
 {

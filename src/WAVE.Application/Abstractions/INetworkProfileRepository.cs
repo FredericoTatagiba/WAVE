@@ -2,7 +2,7 @@ using WAVE.Domain.Networking;
 
 namespace WAVE.Application.Abstractions;
 
-/// <summary>Persistência dos perfis de rede configurados para teste.</summary>
+/// <summary>Persistence of the network profiles configured for testing.</summary>
 public interface INetworkProfileRepository
 {
     Task<IReadOnlyList<WifiNetworkProfile>> GetAllAsync(CancellationToken cancellationToken = default);

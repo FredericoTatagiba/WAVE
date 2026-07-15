@@ -1,8 +1,8 @@
 namespace WAVE.Domain.Security;
 
 /// <summary>
-/// Conta de usuário do sistema. Identidade lógica = <see cref="Username"/>.
-/// Não guarda a senha: o hash fica na persistência (ver IUserRepository).
+/// System user account. Logical identity = <see cref="Username"/>.
+/// Does not hold the password: the hash lives in persistence (see IUserRepository).
 /// </summary>
 public sealed class UserAccount
 {

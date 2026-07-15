@@ -3,7 +3,7 @@ using WAVE.Domain.Networking;
 namespace WAVE.Application.Discovery;
 
 /// <summary>
-/// Rede pronta para virar botão de teste. <see cref="ReadyToConnect"/> indica que
-/// não é preciso digitar senha (rede aberta, salva no Windows ou já cadastrada).
+/// Network ready to become a test button. <see cref="ReadyToConnect"/> indicates that
+/// no password needs to be typed (open network, saved in Windows or already registered).
 /// </summary>
 public sealed record DiscoveredNetwork(WifiNetworkProfile Profile, bool ReadyToConnect, int SignalPercent);

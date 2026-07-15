@@ -1,6 +1,6 @@
 namespace WAVE.Domain.Security;
 
-/// <summary>Permissões granulares verificadas em todas as camadas.</summary>
+/// <summary>Granular permissions checked across all layers.</summary>
 public enum Permission
 {
     RunTest,

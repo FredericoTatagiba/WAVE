@@ -2,15 +2,15 @@ using System.Diagnostics;
 
 namespace WAVE.Infrastructure.Process;
 
-/// <summary>Resultado da execução de um processo de linha de comando.</summary>
+/// <summary>Result of running a command-line process.</summary>
 internal sealed record CommandResult(int ExitCode, string StandardOutput, string StandardError)
 {
     public bool Succeeded => ExitCode == 0;
 }
 
 /// <summary>
-/// Executa utilitários de linha de comando (ex.: <c>netsh</c>) capturando saída,
-/// sem abrir janela. Responsabilidade única: rodar processo e coletar resultado.
+/// Runs command-line utilities (e.g. <c>netsh</c>) capturing output, without opening
+/// a window. Single responsibility: run the process and collect the result.
 /// </summary>
 internal sealed class CommandLineExecutor
 {

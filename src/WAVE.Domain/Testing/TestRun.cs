@@ -1,8 +1,8 @@
 namespace WAVE.Domain.Testing;
 
 /// <summary>
-/// Registro imutável de uma execução de teste, para histórico e auditoria
-/// (exigência das Regras Primordiais). Serializável para persistência JSON.
+/// Immutable record of a test run, for history and auditing (a Core Rules
+/// requirement). Serializable for JSON persistence.
 /// </summary>
 public sealed record TestRun
 {

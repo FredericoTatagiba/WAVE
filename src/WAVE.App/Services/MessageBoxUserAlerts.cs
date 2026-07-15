@@ -4,8 +4,8 @@ using System.Windows;
 namespace WAVE.App.Services;
 
 /// <summary>
-/// Implementa alertas com <see cref="MessageBox"/> e som do sistema
-/// (feedback sonoro/visual de erro exigido pela especificação).
+/// Implements alerts with <see cref="MessageBox"/> and a system sound
+/// (audible/visual error feedback required by the specification).
 /// </summary>
 public sealed class MessageBoxUserAlerts : IUserAlerts
 {

@@ -6,9 +6,9 @@ using WAVE.Domain.Networking;
 namespace WAVE.App.Controls;
 
 /// <summary>
-/// Componente de cadastro de rede (visível apenas ao Administrador). Tem seu
-/// próprio namescope, evitando conflito de nomes ao ser hospedado em outros
-/// componentes. Usa a <see cref="MainViewModel"/> do DataContext herdado.
+/// Network registration component (visible only to the Administrator). It has its
+/// own namescope, avoiding name conflicts when hosted inside other components.
+/// Uses the <see cref="MainViewModel"/> from the inherited DataContext.
 /// </summary>
 public partial class AddNetworkPanel : UserControl
 {
@@ -20,8 +20,8 @@ public partial class AddNetworkPanel : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        // Começa em "Open" (índice 0) para os campos condicionais terem um estado
-        // consistente desde o início, em vez de o combo aparecer vazio.
+        // Starts at "Open" (index 0) so the conditional fields have a consistent state
+        // from the start, instead of the combo appearing empty.
         if (SecurityBox.SelectedItem is null && SecurityBox.Items.Count > 0)
         {
             SecurityBox.SelectedItem = SecurityType.Open;
@@ -32,8 +32,8 @@ public partial class AddNetworkPanel : UserControl
         SecurityBox.SelectedItem is SecurityType selected ? selected : SecurityType.Open;
 
     /// <summary>
-    /// Mostra apenas os campos que o tipo de segurança escolhido exige: senha para
-    /// redes protegidas; usuário/domínio somente para redes Enterprise (802.1X).
+    /// Shows only the fields the chosen security type requires: password for protected
+    /// networks; username/domain only for Enterprise (802.1X) networks.
     /// </summary>
     private void OnSecurityChanged(object sender, SelectionChangedEventArgs e)
     {

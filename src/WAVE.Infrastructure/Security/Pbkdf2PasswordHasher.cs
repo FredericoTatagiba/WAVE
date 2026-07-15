@@ -6,8 +6,8 @@ using WAVE.Application.Abstractions;
 namespace WAVE.Infrastructure.Security;
 
 /// <summary>
-/// Hash de senha com PBKDF2 (SHA-256) e sal aleatório. Formato do hash:
-/// <c>iterations:saltBase64:hashBase64</c>. A senha nunca é persistida.
+/// Password hashing with PBKDF2 (SHA-256) and a random salt. Hash format:
+/// <c>iterations:saltBase64:hashBase64</c>. The password is never persisted.
 /// </summary>
 public sealed class Pbkdf2PasswordHasher : IPasswordHasher
 {

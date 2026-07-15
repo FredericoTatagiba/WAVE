@@ -5,7 +5,7 @@ using WAVE.Infrastructure.Configuration;
 
 namespace WAVE.Infrastructure.Persistence;
 
-/// <summary>Repositório de usuários em arquivo JSON, com acesso serializado.</summary>
+/// <summary>User repository in a JSON file, with serialized access.</summary>
 public sealed class JsonUserRepository : IUserRepository
 {
     private sealed record UserRecord(Guid Id, string Username, string DisplayName, UserRole Role, string PasswordHash);
@@ -132,7 +132,7 @@ public sealed class JsonUserRepository : IUserRepository
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao ler usuários; retornando lista vazia.", exception);
+            _logger.Error("Failed to read users; returning empty list.", exception);
             return new List<UserRecord>();
         }
     }

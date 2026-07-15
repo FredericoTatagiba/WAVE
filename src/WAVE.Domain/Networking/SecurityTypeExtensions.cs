@@ -1,17 +1,17 @@
 namespace WAVE.Domain.Networking;
 
 /// <summary>
-/// Regras derivadas do tipo de seguranca, em um unico lugar (fonte de verdade
-/// compartilhada entre dominio e UI). Evita duplicar a logica de "precisa de
-/// senha" / "e enterprise" em varias camadas.
+/// Rules derived from the security type, in a single place (shared source of truth
+/// between domain and UI). Avoids duplicating the "needs a password" / "is enterprise"
+/// logic across several layers.
 /// </summary>
 public static class SecurityTypeExtensions
 {
-    /// <summary>Redes abertas nao exigem credencial; as demais sim.</summary>
+    /// <summary>Open networks do not require a credential; all others do.</summary>
     public static bool RequiresCredential(this SecurityType security) =>
         security != SecurityType.Open;
 
-    /// <summary>Redes 802.1X (usuario/dominio), diferente das Personal (so senha).</summary>
+    /// <summary>802.1X networks (user/domain), unlike Personal (password only).</summary>
     public static bool IsEnterprise(this SecurityType security) =>
         security is SecurityType.Wpa2Enterprise or SecurityType.Wpa3Enterprise;
 }

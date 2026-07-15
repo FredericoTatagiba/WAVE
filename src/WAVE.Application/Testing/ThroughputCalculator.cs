@@ -1,8 +1,8 @@
 namespace WAVE.Application.Testing;
 
 /// <summary>
-/// Converte bytes transferidos e tempo decorrido em vazão (Mbps). Lógica pura,
-/// isolada do IO para ser testável sem rede. 1 Mbps = 1.000.000 bits/s.
+/// Converts transferred bytes and elapsed time into throughput (Mbps). Pure logic,
+/// isolated from IO to be testable without a network. 1 Mbps = 1,000,000 bits/s.
 /// </summary>
 public static class ThroughputCalculator
 {

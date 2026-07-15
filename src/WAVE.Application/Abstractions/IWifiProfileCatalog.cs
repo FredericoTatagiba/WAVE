@@ -1,8 +1,8 @@
 namespace WAVE.Application.Abstractions;
 
 /// <summary>
-/// Consulta os perfis de rede que o Windows já tem salvos. Quando um perfil
-/// existe, é possível conectar sem informar a senha novamente.
+/// Queries the network profiles Windows already has saved. When a profile
+/// exists, it is possible to connect without entering the password again.
 /// </summary>
 public interface IWifiProfileCatalog
 {

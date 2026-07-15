@@ -4,7 +4,7 @@ using WAVE.Domain.Security;
 
 namespace WAVE.Application.Security;
 
-/// <summary>Serviço de autorização baseado no papel do usuário atual.</summary>
+/// <summary>Authorization service based on the current user's role.</summary>
 public sealed class AuthorizationService : IAuthorizationService
 {
     private readonly ICurrentUserContext _currentUser;

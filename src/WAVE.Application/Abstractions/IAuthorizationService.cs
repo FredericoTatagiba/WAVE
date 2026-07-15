@@ -4,13 +4,13 @@ using WAVE.Domain.Security;
 namespace WAVE.Application.Abstractions;
 
 /// <summary>
-/// Verifica permissões do usuário atual. Deve ser chamado em todas as camadas
-/// (não apenas na UI), conforme as Regras Primordiais de segurança.
+/// Checks the current user's permissions. Must be called across all layers
+/// (not only in the UI), per the Core security Rules.
 /// </summary>
 public interface IAuthorizationService
 {
     bool HasPermission(Permission permission);
 
-    /// <summary>Retorna falha quando a permissão não é concedida.</summary>
+    /// <summary>Returns failure when the permission is not granted.</summary>
     Result Authorize(Permission permission);
 }

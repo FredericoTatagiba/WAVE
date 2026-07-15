@@ -5,8 +5,8 @@ using WAVE.Domain.Testing;
 namespace WAVE.Infrastructure.Diagnostics;
 
 /// <summary>
-/// Executa ping em segundo plano usando <see cref="Ping"/> e emite amostras para
-/// a telemetria in-app (gráfico de latência). Independente da janela visível.
+/// Runs a background ping using <see cref="Ping"/> and emits samples for the
+/// in-app telemetry (latency chart). Independent of the visible window.
 /// </summary>
 public sealed class ContinuousPingMonitor : IContinuousPingMonitor
 {
@@ -69,7 +69,7 @@ public sealed class ContinuousPingMonitor : IContinuousPingMonitor
             }
             catch (OperationCanceledException)
             {
-                // Encerramento esperado.
+                // Expected shutdown.
             }
         }
 
@@ -111,7 +111,7 @@ public sealed class ContinuousPingMonitor : IContinuousPingMonitor
         }
         catch (Exception exception)
         {
-            _logger.Warn($"Ping falhou: {exception.Message}");
+            _logger.Warn($"Ping failed: {exception.Message}");
             return PingSample.Timeout(_clock.Now);
         }
     }

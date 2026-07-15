@@ -1,8 +1,8 @@
 namespace WAVE.Domain.Common;
 
 /// <summary>
-/// Resultado de uma operação que pode falhar, evitando o uso de exceções para
-/// controle de fluxo (padrão "railway"). Mantém baixo acoplamento e clareza.
+/// Result of an operation that may fail, avoiding the use of exceptions for flow
+/// control (the "railway" pattern). Keeps coupling low and intent clear.
 /// </summary>
 public class Result
 {
@@ -23,7 +23,7 @@ public class Result
     public static Result Failure(string error) => new(false, error);
 }
 
-/// <summary>Resultado que carrega um valor em caso de sucesso.</summary>
+/// <summary>Result that carries a value on success.</summary>
 public sealed class Result<T> : Result
 {
     private readonly T? _value;
@@ -33,7 +33,7 @@ public sealed class Result<T> : Result
 
     public T Value => IsSuccess
         ? _value!
-        : throw new InvalidOperationException("Não há valor em um resultado de falha.");
+        : throw new InvalidOperationException("There is no value in a failure result.");
 
     public static Result<T> Success(T value) => new(true, value, string.Empty);
 

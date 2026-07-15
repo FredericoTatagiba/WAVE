@@ -1,1 +1,1 @@
-// Obsoleto: substituído por IPasswordHasher.
+// Obsolete: replaced by IPasswordHasher.

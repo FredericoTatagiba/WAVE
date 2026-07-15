@@ -3,9 +3,9 @@ using WAVE.Domain.Testing;
 namespace WAVE.Application.Abstractions;
 
 /// <summary>
-/// Mede a vazão da conexão (download e, opcionalmente, upload) diretamente no app,
-/// sem depender do navegador. A implementação faz a transferência HTTP e converte
-/// para Mbps; lança em caso de falha de rede (o orquestrador trata e segue).
+/// Measures the connection throughput (download and, optionally, upload) directly
+/// in the app, without depending on the browser. The implementation performs the HTTP
+/// transfer and converts to Mbps; it throws on network failure (the orchestrator handles it and continues).
 /// </summary>
 public interface ISpeedMeter
 {

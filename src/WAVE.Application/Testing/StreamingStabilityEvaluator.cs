@@ -3,13 +3,13 @@ using WAVE.Domain.Testing;
 namespace WAVE.Application.Testing;
 
 /// <summary>
-/// Classifica a estabilidade do streaming a partir das amostras de vazão sustentada
-/// e do bitrate-alvo (ex.: ~8 Mbps para 1080p). Lógica pura e testável: uma amostra
-/// abaixo do alvo conta como "rebuffer" (risco de travar a qualidade).
+/// Classifies streaming stability from the sustained-throughput samples and the
+/// target bitrate (e.g. ~8 Mbps for 1080p). Pure, testable logic: a sample below
+/// the target counts as a "rebuffer" (risk of quality stalling).
 /// </summary>
 public static class StreamingStabilityEvaluator
 {
-    /// <summary>Acima deste percentual de amostras abaixo do alvo, considera-se instável.</summary>
+    /// <summary>Above this ratio of samples below the target, it is considered unstable.</summary>
     public const double UnstableRatioThreshold = 0.25;
 
     public static StreamingObservation Evaluate(

@@ -1,8 +1,8 @@
 namespace WAVE.Application.Abstractions;
 
 /// <summary>
-/// Abstração mínima de log, para a Application não depender de framework de log.
-/// Mensagens ao operador nunca expõem detalhes internos; estes vão para o log.
+/// Minimal logging abstraction, so the Application does not depend on a logging framework.
+/// Operator messages never expose internal details; those go to the log.
 /// </summary>
 public interface IAppLogger
 {

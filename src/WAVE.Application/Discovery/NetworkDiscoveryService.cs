@@ -4,10 +4,10 @@ using WAVE.Domain.Networking;
 namespace WAVE.Application.Discovery;
 
 /// <summary>
-/// Monta a lista de redes para teste combinando: (1) redes próximas visíveis,
-/// (2) perfis já salvos no Windows e (3) perfis cadastrados no WAVE. Assim o
-/// operador não precisa digitar SSIDs, e redes conhecidas pelo Windows já ficam
-/// prontas para testar sem senha.
+/// Builds the list of networks to test by combining: (1) nearby visible networks,
+/// (2) profiles already saved in Windows and (3) profiles registered in WAVE. This way
+/// the operator does not need to type SSIDs, and networks known to Windows are already
+/// ready to test without a password.
 /// </summary>
 public sealed class NetworkDiscoveryService
 {
@@ -84,7 +84,7 @@ public sealed class NetworkDiscoveryService
         }
         catch (ArgumentException exception)
         {
-            _logger.Warn($"SSID ignorado na descoberta: {exception.Message}");
+            _logger.Warn($"SSID ignored during discovery: {exception.Message}");
             return null;
         }
     }
@@ -97,7 +97,7 @@ public sealed class NetworkDiscoveryService
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao escanear redes próximas.", exception);
+            _logger.Error("Failed to scan nearby networks.", exception);
             return Array.Empty<AvailableNetwork>();
         }
     }
@@ -110,7 +110,7 @@ public sealed class NetworkDiscoveryService
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao listar perfis salvos no Windows.", exception);
+            _logger.Error("Failed to list profiles saved in Windows.", exception);
             return Array.Empty<string>();
         }
     }

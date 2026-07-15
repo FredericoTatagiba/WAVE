@@ -4,8 +4,8 @@ using WAVE.Application.Abstractions;
 namespace WAVE.Infrastructure.Web;
 
 /// <summary>
-/// Abre URLs em janela anônima. Tenta Edge (--inprivate), depois Chrome
-/// (--incognito) e, por fim, o navegador padrão. Aceita apenas http/https.
+/// Opens URLs in a private window. Tries Edge (--inprivate), then Chrome
+/// (--incognito) and, finally, the default browser. Accepts only http/https.
 /// </summary>
 public sealed class PrivateBrowserLauncher : IPrivateBrowserLauncher
 {
@@ -17,7 +17,7 @@ public sealed class PrivateBrowserLauncher : IPrivateBrowserLauncher
     {
         if (!IsValidHttpUrl(url))
         {
-            _logger.Warn($"URL inválida ignorada: {url}");
+            _logger.Warn($"Invalid URL ignored: {url}");
             return;
         }
 
@@ -43,7 +43,7 @@ public sealed class PrivateBrowserLauncher : IPrivateBrowserLauncher
         }
         catch (Exception exception)
         {
-            _logger.Warn($"Não foi possível iniciar '{executable}': {exception.Message}");
+            _logger.Warn($"Could not start '{executable}': {exception.Message}");
             return false;
         }
     }
@@ -56,7 +56,7 @@ public sealed class PrivateBrowserLauncher : IPrivateBrowserLauncher
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao abrir o navegador padrão.", exception);
+            _logger.Error("Failed to open the default browser.", exception);
         }
     }
 

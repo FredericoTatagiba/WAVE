@@ -2,7 +2,7 @@ using WAVE.Domain.Testing;
 
 namespace WAVE.Application.Testing;
 
-/// <summary>Cálculo puro (e testável) de estatísticas a partir de amostras de ping.</summary>
+/// <summary>Pure (and testable) computation of statistics from ping samples.</summary>
 public static class PingStatisticsCalculator
 {
     public static PingStatistics Calculate(IReadOnlyCollection<PingSample> samples)

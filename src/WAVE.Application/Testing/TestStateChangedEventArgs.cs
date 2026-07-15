@@ -2,7 +2,7 @@ using WAVE.Domain.Testing;
 
 namespace WAVE.Application.Testing;
 
-/// <summary>Notifica mudanças de estado da operação de teste para a UI.</summary>
+/// <summary>Notifies test-operation state changes to the UI.</summary>
 public sealed class TestStateChangedEventArgs : EventArgs
 {
     public TestStateChangedEventArgs(

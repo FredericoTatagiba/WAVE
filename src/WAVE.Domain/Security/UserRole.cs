@@ -1,11 +1,11 @@
 namespace WAVE.Domain.Security;
 
-/// <summary>Papéis de acesso da aplicação (RBAC).</summary>
+/// <summary>Application access roles (RBAC).</summary>
 public enum UserRole
 {
-    /// <summary>Executa testes e consulta histórico.</summary>
+    /// <summary>Runs tests and views history.</summary>
     Operator = 0,
 
-    /// <summary>Além do operador, gerencia perfis/credenciais e configurações.</summary>
+    /// <summary>Everything the operator can do, plus manages profiles/credentials and settings.</summary>
     Administrator = 1
 }

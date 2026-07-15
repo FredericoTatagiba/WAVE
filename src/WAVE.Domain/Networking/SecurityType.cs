@@ -1,6 +1,6 @@
 namespace WAVE.Domain.Networking;
 
-/// <summary>Tipo de segurança da rede Wi-Fi (base para gerar o perfil WLAN).</summary>
+/// <summary>Wi-Fi network security type (basis for building the WLAN profile).</summary>
 public enum SecurityType
 {
     Open,

@@ -1,6 +1,6 @@
 namespace WAVE.App.Services;
 
-/// <summary>Abstração de alertas ao usuário, para desacoplar as ViewModels da UI.</summary>
+/// <summary>User-alert abstraction, to decouple the ViewModels from the UI.</summary>
 public interface IUserAlerts
 {
     void Error(string message);

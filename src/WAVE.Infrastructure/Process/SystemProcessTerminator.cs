@@ -4,9 +4,9 @@ using WAVE.Application.Abstractions;
 namespace WAVE.Infrastructure.Process;
 
 /// <summary>
-/// Encerra apenas os processos que o WAVE iniciou, rastreados por PID. Não encerra
-/// mais por nome — isso fechava navegadores/terminais do usuário. Escopo restrito
-/// ao que o app abriu (hoje, a janela de ping).
+/// Terminates only the processes WAVE started, tracked by PID. It no longer terminates
+/// by name — that used to close the user's browsers/terminals. Scope restricted
+/// to what the app opened (today, the ping window).
 /// </summary>
 public sealed class SystemProcessTerminator : IProcessTerminator
 {
@@ -52,11 +52,11 @@ public sealed class SystemProcessTerminator : IProcessTerminator
             }
             catch (ArgumentException)
             {
-                // Processo já não existe: nada a encerrar.
+                // Process no longer exists: nothing to terminate.
             }
             catch (Exception exception)
             {
-                _logger.Warn($"Falha ao encerrar o processo {id}: {exception.Message}");
+                _logger.Warn($"Failed to terminate process {id}: {exception.Message}");
             }
         }
 

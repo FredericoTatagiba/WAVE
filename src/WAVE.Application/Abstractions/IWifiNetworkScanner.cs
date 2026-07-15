@@ -2,7 +2,7 @@ using WAVE.Domain.Networking;
 
 namespace WAVE.Application.Abstractions;
 
-/// <summary>Varre as redes Wi-Fi visíveis no momento.</summary>
+/// <summary>Scans the Wi-Fi networks currently visible.</summary>
 public interface IWifiNetworkScanner
 {
     Task<IReadOnlyList<AvailableNetwork>> ScanAsync(CancellationToken cancellationToken = default);

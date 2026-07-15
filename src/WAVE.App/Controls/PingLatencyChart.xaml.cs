@@ -8,9 +8,9 @@ using System.Windows.Shapes;
 namespace WAVE.App.Controls;
 
 /// <summary>
-/// Componente de gráfico de latência ao vivo. Desenha uma polilinha a partir de
-/// uma coleção de valores (ms) e redesenha quando a coleção ou o tamanho mudam.
-/// Sem dependências externas de bibliotecas de gráfico.
+/// Live latency chart component. Draws a polyline from a collection of values (ms)
+/// and redraws when the collection or the size changes.
+/// No external charting-library dependencies.
 /// </summary>
 public partial class PingLatencyChart : UserControl
 {

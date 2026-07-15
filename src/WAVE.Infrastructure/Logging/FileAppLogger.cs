@@ -5,8 +5,8 @@ using WAVE.Infrastructure.Configuration;
 namespace WAVE.Infrastructure.Logging;
 
 /// <summary>
-/// Logger simples com arquivo diário em <c>%LOCALAPPDATA%\WAVE\logs</c>.
-/// Falhas de log jamais interrompem o fluxo da aplicação.
+/// Simple logger with a daily file in <c>%LOCALAPPDATA%\WAVE\logs</c>.
+/// Logging failures never interrupt the application flow.
 /// </summary>
 public sealed class FileAppLogger : IAppLogger
 {
@@ -40,7 +40,7 @@ public sealed class FileAppLogger : IAppLogger
         }
         catch
         {
-            // Log nunca deve quebrar o fluxo principal.
+            // Logging must never break the main flow.
         }
     }
 }

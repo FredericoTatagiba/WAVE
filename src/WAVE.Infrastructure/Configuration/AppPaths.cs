@@ -1,8 +1,8 @@
 namespace WAVE.Infrastructure.Configuration;
 
 /// <summary>
-/// Resolve os caminhos de dados locais da aplicação em
-/// <c>%LOCALAPPDATA%\WAVE</c>. Centralizado para evitar caminhos espalhados.
+/// Resolves the application's local data paths under
+/// <c>%LOCALAPPDATA%\WAVE</c>. Centralized to avoid scattered paths.
 /// </summary>
 public static class AppPaths
 {

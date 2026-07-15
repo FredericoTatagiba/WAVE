@@ -2,7 +2,7 @@ using WAVE.Domain.Security;
 
 namespace WAVE.Application.Abstractions;
 
-/// <summary>Contexto do usuário atual (papel e identidade) para o RBAC.</summary>
+/// <summary>Current user context (role and identity) for RBAC.</summary>
 public interface ICurrentUserContext
 {
     UserRole Role { get; }
@@ -11,6 +11,6 @@ public interface ICurrentUserContext
 
     event EventHandler? Changed;
 
-    /// <summary>Define papel/identidade atuais. Uso interno da elevação de papel.</summary>
+    /// <summary>Sets the current role/identity. Internal use by role elevation.</summary>
     void Set(UserRole role, string userName);
 }

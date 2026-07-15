@@ -3,8 +3,8 @@ using System.Windows.Controls;
 namespace WAVE.App.Controls;
 
 /// <summary>
-/// Componente reutilizável de botão de rede. Todo o comportamento vem do
-/// <c>NetworkButtonViewModel</c> em seu DataContext (sem lógica no code-behind).
+/// Reusable network-button component. All behavior comes from the
+/// <c>NetworkButtonViewModel</c> in its DataContext (no logic in the code-behind).
 /// </summary>
 public partial class NetworkButton : UserControl
 {

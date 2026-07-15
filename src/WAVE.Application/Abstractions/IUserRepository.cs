@@ -2,7 +2,7 @@ using WAVE.Domain.Security;
 
 namespace WAVE.Application.Abstractions;
 
-/// <summary>Persistência das contas de usuário e seus hashes de senha.</summary>
+/// <summary>Persistence of user accounts and their password hashes.</summary>
 public interface IUserRepository
 {
     Task<bool> HasAnyAsync(CancellationToken cancellationToken = default);

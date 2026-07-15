@@ -5,7 +5,7 @@ using WAVE.Infrastructure.Configuration;
 
 namespace WAVE.Infrastructure.Persistence;
 
-/// <summary>Repositório de perfis em arquivo JSON, com acesso serializado.</summary>
+/// <summary>Profile repository in a JSON file, with serialized access.</summary>
 public sealed class JsonNetworkProfileRepository : INetworkProfileRepository
 {
     private readonly SemaphoreSlim _mutex = new(1, 1);
@@ -88,7 +88,7 @@ public sealed class JsonNetworkProfileRepository : INetworkProfileRepository
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao ler perfis; retornando lista vazia.", exception);
+            _logger.Error("Failed to read profiles; returning empty list.", exception);
             return new List<WifiNetworkProfile>();
         }
     }

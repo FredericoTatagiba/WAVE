@@ -1,17 +1,17 @@
 namespace WAVE.Domain.Testing;
 
-/// <summary>Estados da operação, conforme seção 5 da especificação técnica.</summary>
+/// <summary>Operation states, per section 5 of the technical specification.</summary>
 public enum TestOperationState
 {
-    /// <summary>Interface carregada, aguardando interação.</summary>
+    /// <summary>Interface loaded, awaiting interaction.</summary>
     Idle,
 
-    /// <summary>Conexão enviada; autenticação/DHCP em andamento.</summary>
+    /// <summary>Connection requested; authentication/DHCP in progress.</summary>
     Connecting,
 
-    /// <summary>Conexão estabelecida; rotinas de validação em execução.</summary>
+    /// <summary>Connection established; validation routines running.</summary>
     TestRunning,
 
-    /// <summary>Falha na associação ou timeout de DHCP.</summary>
+    /// <summary>Association failure or DHCP timeout.</summary>
     Failed
 }

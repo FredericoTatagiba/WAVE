@@ -4,8 +4,8 @@ using WAVE.Domain.Security;
 namespace WAVE.Application.Security;
 
 /// <summary>
-/// Contexto de usuário em memória. O papel e a identidade são definidos no
-/// login (ver AuthenticationService).
+/// In-memory user context. The role and identity are set at login
+/// (see AuthenticationService).
 /// </summary>
 public sealed class CurrentUserContext : ICurrentUserContext
 {

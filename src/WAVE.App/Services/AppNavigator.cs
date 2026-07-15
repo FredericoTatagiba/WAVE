@@ -5,8 +5,8 @@ using WAVE.App.Views;
 namespace WAVE.App.Services;
 
 /// <summary>
-/// Coordena a abertura de janelas que dependem de DI (login e gestão de usuários),
-/// evitando que as Views construam dependências manualmente.
+/// Coordinates opening windows that depend on DI (login and user management),
+/// preventing the Views from constructing dependencies manually.
 /// </summary>
 public sealed class AppNavigator
 {
@@ -14,7 +14,7 @@ public sealed class AppNavigator
 
     public AppNavigator(IServiceProvider provider) => _provider = provider;
 
-    /// <summary>Exibe o login (modal). Retorna true se autenticado.</summary>
+    /// <summary>Shows the login (modal). Returns true if authenticated.</summary>
     public bool Authenticate(Window? owner = null)
     {
         var window = _provider.GetRequiredService<LoginWindow>();
@@ -27,10 +27,10 @@ public sealed class AppNavigator
     }
 
     /// <summary>
-    /// Encerra a sessão atual: oculta a janela informada (para a página anterior não
-    /// ficar visível), exibe o login e, se autenticado, reexibe a janela para o novo
-    /// usuário. Se o login for cancelado, encerra o app. Retorna true quando um novo
-    /// usuário autenticou — a janela deve então recarregar seu estado.
+    /// Ends the current session: hides the given window (so the previous page is not
+    /// visible), shows the login and, if authenticated, re-shows the window for the new
+    /// user. If the login is cancelled, exits the app. Returns true when a new user
+    /// authenticated — the window should then reload its state.
     /// </summary>
     public bool Logout(Window current)
     {
@@ -39,8 +39,8 @@ public sealed class AppNavigator
         var app = System.Windows.Application.Current;
         var previousMode = app.ShutdownMode;
 
-        // Entre ocultar a janela e o novo login não há janela visível: sem isto o app
-        // encerraria (OnLastWindowClose) ao fechar o login.
+        // Between hiding the window and the new login there is no visible window: without
+        // this the app would exit (OnLastWindowClose) when the login closes.
         app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         current.Hide();
 
@@ -55,7 +55,7 @@ public sealed class AppNavigator
         return true;
     }
 
-    /// <summary>Exibe a gestão de usuários (modal, apenas Administrador).</summary>
+    /// <summary>Shows user management (modal, Administrator only).</summary>
     public void ShowUserManagement(Window owner)
     {
         var window = _provider.GetRequiredService<UserManagementWindow>();

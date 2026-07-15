@@ -7,10 +7,10 @@ using WAVE.Domain.Testing;
 namespace WAVE.Application.Testing;
 
 /// <summary>
-/// Implementa a pseudológica da especificação como máquina de estados:
-/// IDLE -> CONNECTING -> (TEST_RUNNING | FAILED). Coordena autorização, encerramento
-/// de processos, criação de perfil, conexão, validação de DHCP, disparo das rotinas
-/// de teste e registro de histórico. Cada etapa está isolada em um método próprio.
+/// Implements the specification's pseudo-logic as a state machine:
+/// IDLE -> CONNECTING -> (TEST_RUNNING | FAILED). Coordinates authorization, process
+/// termination, profile creation, connection, DHCP validation, firing the validation
+/// routines and recording history. Each step is isolated in its own method.
 /// </summary>
 public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
 {
@@ -33,6 +33,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     private readonly List<PingSample> _samples = new();
 
     private int _running;
+    private bool _profileCreatedThisRun;
     private Guid _runId;
     private DateTimeOffset _startedAt;
     private string _ssid = string.Empty;
@@ -82,7 +83,10 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
 
     public event EventHandler<PingSample>? PingSampled;
 
-    public async Task<Result> RunTestAsync(WifiNetworkProfile profile, CancellationToken cancellationToken = default)
+    public async Task<Result> RunTestAsync(
+        WifiNetworkProfile profile,
+        WifiSecret? providedSecret = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
@@ -102,13 +106,15 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
             BeginSession(profile);
             SetState(TestOperationState.Connecting, profile.Ssid);
 
-            // Reaproveita o perfil que o Windows já tem salvo: nesses casos não é
-            // preciso recriar o perfil nem informar a senha novamente.
+            // Reuses the profile Windows already has saved: in those cases there is no
+            // need to recreate the profile or enter the password again.
             var alreadyKnown = await _catalog.ExistsAsync(profile.Ssid, cancellationToken).ConfigureAwait(false);
 
             if (!alreadyKnown)
             {
-                var secret = await ResolveCredentialAsync(profile, cancellationToken).ConfigureAwait(false);
+                // Prefer the credential the operator just typed (used only for this run);
+                // fall back to a previously remembered one when there is no fresh input.
+                var secret = providedSecret ?? await ResolveCredentialAsync(profile, cancellationToken).ConfigureAwait(false);
                 if (profile.RequiresCredential && secret is null)
                 {
                     return await FailAsync(TestFailureReason.MissingCredential,
@@ -121,6 +127,10 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
                 {
                     return await FailAsync(TestFailureReason.ProfileCreationFailed, ensured.Error).ConfigureAwait(false);
                 }
+
+                // We created the Windows profile this run; if the connection is not
+                // confirmed, FailAsync rolls it back so a bad credential isn't kept.
+                _profileCreatedThisRun = true;
             }
 
             var connected = await _connector.ConnectAsync(profile.Ssid, cancellationToken).ConfigureAwait(false);
@@ -147,7 +157,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha inesperada durante o teste de conectividade.", exception);
+            _logger.Error("Unexpected failure during the connectivity test.", exception);
             return await FailAsync(TestFailureReason.Unexpected,
                 "Erro inesperado ao executar o teste.").ConfigureAwait(false);
         }
@@ -182,9 +192,9 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         _visiblePing.Launch(_options.PingTargetHost);
         _pingMonitor.Start(_options.PingTargetHost);
 
-        // Mede vazão e estabilidade de streaming no próprio app (sem navegador) e
-        // registra os números para auditoria. Falhas são toleradas: o teste segue e
-        // o campo correspondente fica sem valor.
+        // Measures throughput and streaming stability in the app itself (no browser) and
+        // records the numbers for auditing. Failures are tolerated: the test continues and
+        // the corresponding field is left without a value.
         await MeasureSpeedAsync(cancellationToken).ConfigureAwait(false);
         await MeasureStreamingAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -197,7 +207,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         }
         catch (Exception exception)
         {
-            _logger.Warn($"Falha ao medir a vazão: {exception.Message}");
+            _logger.Warn($"Failed to measure throughput: {exception.Message}");
         }
     }
 
@@ -211,7 +221,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         }
         catch (Exception exception)
         {
-            _logger.Warn($"Falha ao sondar o streaming: {exception.Message}");
+            _logger.Warn($"Failed to probe the streaming: {exception.Message}");
         }
     }
 
@@ -246,10 +256,35 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     {
         await _pingMonitor.StopAsync().ConfigureAwait(false);
         _visiblePing.Close();
+        await RollbackProfileIfCreatedAsync().ConfigureAwait(false);
         await PersistRunAsync(TestOperationState.Failed, reason).ConfigureAwait(false);
         Interlocked.Exchange(ref _running, 0);
         SetState(TestOperationState.Failed, _ssid, reason, message);
         return Result.Failure(message);
+    }
+
+    /// <summary>
+    /// Rolls back the Windows profile created during this run when the connection is
+    /// not confirmed (e.g. wrong password), so an invalid credential is not remembered
+    /// and the network keeps asking for the password on the next attempt. Best-effort.
+    /// </summary>
+    private async Task RollbackProfileIfCreatedAsync()
+    {
+        if (!_profileCreatedThisRun)
+        {
+            return;
+        }
+
+        _profileCreatedThisRun = false;
+
+        try
+        {
+            await _connector.RemoveProfileAsync(_ssid).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _logger.Warn($"Could not roll back the network profile '{_ssid}': {exception.Message}");
+        }
     }
 
     private async Task ResetToIdleAsync()
@@ -277,6 +312,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         _startedAt = _clock.Now;
         _ssid = profile.Ssid;
         _operatorName = _currentUser.UserName;
+        _profileCreatedThisRun = false;
         _speed = null;
         _streaming = null;
 
@@ -321,7 +357,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao registrar o histórico da execução.", exception);
+            _logger.Error("Failed to record the run history.", exception);
         }
     }
 

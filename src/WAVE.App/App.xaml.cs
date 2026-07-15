@@ -7,8 +7,7 @@ using WAVE.App.Views;
 namespace WAVE.App;
 
 /// <summary>
-/// Ponto de composição (Composition Root). Monta o contêiner de DI e, após o
-/// login, exibe a janela principal.
+/// Composition Root. Builds the DI container and, after login, shows the main window.
 /// </summary>
 public partial class App : System.Windows.Application
 {
@@ -18,8 +17,8 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
-        // Evita que o app encerre quando a janela de login (única aberta) fecha
-        // antes de a janela principal aparecer.
+        // Prevents the app from exiting when the login window (the only one open) closes
+        // before the main window appears.
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         var services = new ServiceCollection();

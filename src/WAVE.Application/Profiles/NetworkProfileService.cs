@@ -6,10 +6,10 @@ using WAVE.Domain.Security;
 namespace WAVE.Application.Profiles;
 
 /// <summary>
-/// Casos de uso de gerenciamento de perfis. Operação sensível: gravar/excluir
-/// exige a permissão <see cref="Permission.ManageProfiles"/>, validada aqui na
-/// Application (não apenas na UI). Apenas a listagem é liberada ao operador,
-/// pois é necessária para montar os botões de teste.
+/// Profile management use cases. Sensitive operation: saving/deleting requires the
+/// <see cref="Permission.ManageProfiles"/> permission, validated here in the
+/// Application (not only in the UI). Only listing is allowed to the operator,
+/// since it is needed to build the test buttons.
 /// </summary>
 public sealed class NetworkProfileService
 {
@@ -57,12 +57,12 @@ public sealed class NetworkProfileService
     }
 
     /// <summary>
-    /// Memoriza uma rede recém-selecionada (perfil + credencial) para os próximos
-    /// testes. Diferente de <see cref="SaveAsync"/> (a curadoria do catalogo, que
-    /// e do Administrador), esta e uma acao do operador durante um teste: exige
-    /// apenas <see cref="Permission.RunTest"/>. Assim, ao tocar numa rede ainda
-    /// desconhecida pelo sistema e informar a senha, a rede fica disponível para
-    /// re-testes sem digitar a senha de novo.
+    /// Remembers a just-selected network (profile + credential) for the next tests.
+    /// Unlike <see cref="SaveAsync"/> (the catalog curation, which belongs to the
+    /// Administrator), this is an operator action during a test: it requires only
+    /// <see cref="Permission.RunTest"/>. This way, when tapping a network still unknown
+    /// to the system and entering the password, the network becomes available for
+    /// re-tests without typing the password again.
     /// </summary>
     public async Task<Result> RememberForTestingAsync(
         WifiNetworkProfile profile, WifiSecret? secret, CancellationToken cancellationToken = default)

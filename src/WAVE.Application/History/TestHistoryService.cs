@@ -5,7 +5,7 @@ using WAVE.Domain.Testing;
 
 namespace WAVE.Application.History;
 
-/// <summary>Consulta do histórico de execuções, protegida por <see cref="Permission.ViewHistory"/>.</summary>
+/// <summary>Reads the run history, protected by <see cref="Permission.ViewHistory"/>.</summary>
 public sealed class TestHistoryService
 {
     private readonly ITestRunRepository _repository;

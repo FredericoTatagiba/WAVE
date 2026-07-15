@@ -1,6 +1,6 @@
 namespace WAVE.Domain.Testing;
 
-/// <summary>Estatísticas agregadas de uma sequência de pings.</summary>
+/// <summary>Aggregated statistics for a sequence of pings.</summary>
 public sealed record PingStatistics(
     int Sent,
     int Received,

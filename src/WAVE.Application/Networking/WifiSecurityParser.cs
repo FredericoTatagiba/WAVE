@@ -3,10 +3,10 @@ using WAVE.Domain.Networking;
 namespace WAVE.Application.Networking;
 
 /// <summary>
-/// Deriva o <see cref="SecurityType"/> a partir do texto de autenticação do
-/// <c>netsh wlan show networks</c>. Baseia-se em tokens estáveis do valor
-/// (WPA2/WPA3/Enterprise/Open) — não no rótulo localizado do Windows — o que
-/// permite distinguir Personal de Enterprise (802.1X). Lógica pura e testável.
+/// Derives the <see cref="SecurityType"/> from the authentication text of
+/// <c>netsh wlan show networks</c>. It relies on stable tokens in the value
+/// (WPA2/WPA3/Enterprise/Open) — not on the localized Windows label — which
+/// allows distinguishing Personal from Enterprise (802.1X). Pure, testable logic.
 /// </summary>
 public static class WifiSecurityParser
 {

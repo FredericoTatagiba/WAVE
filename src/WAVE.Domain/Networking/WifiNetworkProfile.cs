@@ -1,13 +1,13 @@
 namespace WAVE.Domain.Networking;
 
 /// <summary>
-/// Rede Wi-Fi previamente configurada para teste. Identidade lógica = SSID.
-/// Não guarda a senha: a credencial fica no armazenamento seguro (DPAPI),
-/// referenciada pelo SSID. Isso reduz a superfície de exposição de segredos.
+/// Wi-Fi network previously configured for testing. Logical identity = SSID.
+/// Does not hold the password: the credential lives in secure storage (DPAPI),
+/// referenced by SSID. This reduces the exposure surface for secrets.
 /// </summary>
 public sealed class WifiNetworkProfile
 {
-    /// <summary>Tamanho máximo de um SSID em octetos (padrão IEEE 802.11).</summary>
+    /// <summary>Maximum length of an SSID in octets (IEEE 802.11 standard).</summary>
     public const int MaxSsidLength = 32;
 
     public string Ssid { get; }
@@ -18,7 +18,7 @@ public sealed class WifiNetworkProfile
 
     public bool IsEnterprise => Security.IsEnterprise();
 
-    /// <summary>Redes abertas não exigem credencial.</summary>
+    /// <summary>Open networks do not require a credential.</summary>
     public bool RequiresCredential => Security.RequiresCredential();
 
     public WifiNetworkProfile(string ssid, string? displayName, SecurityType security)

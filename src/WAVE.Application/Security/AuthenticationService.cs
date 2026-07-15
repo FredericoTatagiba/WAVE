@@ -5,8 +5,8 @@ using WAVE.Domain.Security;
 namespace WAVE.Application.Security;
 
 /// <summary>
-/// Autenticação e primeiro acesso. Na primeira execução (sem usuários), cria o
-/// administrador inicial. No login, valida a senha e define o usuário atual.
+/// Authentication and first access. On the first run (no users), it creates the
+/// initial administrator. At login, it validates the password and sets the current user.
 /// </summary>
 public sealed class AuthenticationService
 {

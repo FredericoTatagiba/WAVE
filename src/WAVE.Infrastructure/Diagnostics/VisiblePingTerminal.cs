@@ -4,10 +4,10 @@ using WAVE.Application.Abstractions;
 namespace WAVE.Infrastructure.Diagnostics;
 
 /// <summary>
-/// Abre uma janela de terminal visível com <c>ping host -t</c> para o técnico
-/// acompanhar latência/perda em tempo real. Registra o PID no
-/// <see cref="IProcessTerminator"/>, que encerra apenas o que o WAVE abriu —
-/// sem tocar em navegadores/terminais do usuário.
+/// Opens a visible terminal window with <c>ping host -t</c> so the technician can
+/// follow latency/loss in real time. Registers the PID with the
+/// <see cref="IProcessTerminator"/>, which terminates only what WAVE opened —
+/// without touching the user's browsers/terminals.
 /// </summary>
 public sealed class VisiblePingTerminal : IVisiblePingTerminal
 {
@@ -27,7 +27,7 @@ public sealed class VisiblePingTerminal : IVisiblePingTerminal
         var safeHost = SanitizeHost(host);
         if (safeHost.Length == 0)
         {
-            _logger.Warn("Host de ping inválido; terminal não aberto.");
+            _logger.Warn("Invalid ping host; terminal not opened.");
             return;
         }
 
@@ -47,7 +47,7 @@ public sealed class VisiblePingTerminal : IVisiblePingTerminal
         }
         catch (Exception exception)
         {
-            _logger.Error("Não foi possível abrir o terminal de ping.", exception);
+            _logger.Error("Could not open the ping terminal.", exception);
         }
     }
 

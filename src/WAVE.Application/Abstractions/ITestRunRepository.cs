@@ -2,7 +2,7 @@ using WAVE.Domain.Testing;
 
 namespace WAVE.Application.Abstractions;
 
-/// <summary>Histórico de execuções de teste para auditoria.</summary>
+/// <summary>History of test runs for auditing.</summary>
 public interface ITestRunRepository
 {
     Task AddAsync(TestRun run, CancellationToken cancellationToken = default);

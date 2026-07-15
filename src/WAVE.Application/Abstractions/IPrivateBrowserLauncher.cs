@@ -1,8 +1,8 @@
 namespace WAVE.Application.Abstractions;
 
 /// <summary>
-/// Abre uma URL em janela anônima/privativa de instância limpa do navegador,
-/// evitando interferência de cache/sessões anteriores.
+/// Opens a URL in an incognito/private window of a clean browser instance,
+/// avoiding interference from cache or previous sessions.
 /// </summary>
 public interface IPrivateBrowserLauncher
 {

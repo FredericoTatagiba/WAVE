@@ -178,20 +178,30 @@ public sealed class MainViewModel : ObservableObject
         {
             var profile = button.Profile;
 
-            // Rede protegida ainda desconhecida pelo sistema: exibe o painel de senha
-            // uma vez e memoriza a rede (perfil + credencial) para os próximos testes.
-            // Redes já prontas (abertas, salvas no Windows ou cadastradas) seguem direto.
+            // Protected network still unknown to the system: ask for the password once.
+            // The credential is kept in memory only and is remembered *after* a confirmed
+            // successful connection (see below), never before. Networks already ready
+            // (open, saved in Windows or registered) go straight through.
+            WifiSecret? transientSecret = null;
             if (profile.RequiresCredential && !button.ReadyToConnect)
             {
-                if (!await EnsureCredentialSavedAsync(profile).ConfigureAwait(false))
+                var prompt = await PromptForCredentialAsync(profile).ConfigureAwait(false);
+                if (prompt.Cancelled)
                 {
                     return;
                 }
+
+                transientSecret = prompt.Secret;
             }
 
-            var result = await _orchestrator.RunTestAsync(profile).ConfigureAwait(false);
-            if (result.IsFailure)
+            var result = await _orchestrator.RunTestAsync(profile, transientSecret).ConfigureAwait(false);
+            if (result.IsSuccess)
             {
+                await RememberOnSuccessAsync(profile, transientSecret).ConfigureAwait(false);
+            }
+            else
+            {
+                // Nothing was persisted, so the next tap will ask for the password again.
                 _alerts.Error(result.Error);
                 _orchestrator.AcknowledgeFailure();
             }
@@ -205,35 +215,50 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>Outcome of asking the operator for a network credential.</summary>
+    private readonly record struct CredentialPromptResult(WifiSecret? Secret, bool Cancelled);
+
     /// <summary>
-    /// Garante que a credencial de uma rede desconhecida esteja disponível: se ainda
-    /// não houver, pede a senha no painel e memoriza a rede para testes futuros.
-    /// Retorna false se o operador cancelar ou se a gravação falhar.
+    /// Asks the operator for the password of an unknown network, without saving anything.
+    /// If a credential is already stored, returns it (no prompt). The returned secret is
+    /// meant for a single test run and is only remembered on success.
     /// </summary>
-    private async Task<bool> EnsureCredentialSavedAsync(WifiNetworkProfile profile)
+    private async Task<CredentialPromptResult> PromptForCredentialAsync(WifiNetworkProfile profile)
     {
         var existing = await _credentialStore.GetAsync(profile.Ssid).ConfigureAwait(false);
         if (existing is not null)
         {
-            return true;
+            // Already remembered from a previous successful run: reuse it.
+            return new CredentialPromptResult(null, Cancelled: false);
         }
 
         WifiSecret? secret = null;
         RunOnUi(() => secret = _credentialPrompt.Request(profile));
+        return secret is null
+            ? new CredentialPromptResult(null, Cancelled: true)
+            : new CredentialPromptResult(secret, Cancelled: false);
+    }
+
+    /// <summary>
+    /// Remembers a freshly entered credential (profile + secret) for future tests, but
+    /// only after the connection has actually succeeded. A wrong password never reaches
+    /// this point, so it is never persisted.
+    /// </summary>
+    private async Task RememberOnSuccessAsync(WifiNetworkProfile profile, WifiSecret? secret)
+    {
         if (secret is null)
         {
-            return false;
+            return;
         }
 
         var remembered = await _profiles.RememberForTestingAsync(profile, secret).ConfigureAwait(false);
         if (remembered.IsFailure)
         {
             _alerts.Error(remembered.Error);
-            return false;
+            return;
         }
 
         StatusMessage = $"Rede '{profile.DisplayName}' salva para testes futuros.";
-        return true;
     }
 
     private async Task StopAsync()

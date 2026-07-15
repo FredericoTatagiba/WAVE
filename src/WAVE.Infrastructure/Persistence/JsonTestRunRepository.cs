@@ -6,7 +6,7 @@ using WAVE.Infrastructure.Configuration;
 
 namespace WAVE.Infrastructure.Persistence;
 
-/// <summary>Histórico de execuções em arquivo JSON (mais recentes primeiro).</summary>
+/// <summary>Run history in a JSON file (most recent first).</summary>
 public sealed class JsonTestRunRepository : ITestRunRepository
 {
     private readonly SemaphoreSlim _mutex = new(1, 1);
@@ -76,7 +76,7 @@ public sealed class JsonTestRunRepository : ITestRunRepository
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao ler histórico; retornando lista vazia.", exception);
+            _logger.Error("Failed to read history; returning empty list.", exception);
             return new List<TestRun>();
         }
     }
