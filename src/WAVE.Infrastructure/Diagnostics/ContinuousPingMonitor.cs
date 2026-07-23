@@ -8,7 +8,7 @@ namespace WAVE.Infrastructure.Diagnostics;
 /// Runs a background ping using <see cref="Ping"/> and emits samples for the
 /// in-app telemetry (latency chart). Independent of the visible window.
 /// </summary>
-public sealed class ContinuousPingMonitor : IContinuousPingMonitor
+public sealed class ContinuousPingMonitor : IContinuousPingMonitor, IDisposable
 {
     private const int PingTimeoutMilliseconds = 4000;
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(1);
@@ -113,6 +113,15 @@ public sealed class ContinuousPingMonitor : IContinuousPingMonitor
         {
             _logger.Warn($"Ping failed: {exception.Message}");
             return PingSample.Timeout(_clock.Now);
+        }
+    }
+
+    public void Dispose()
+    {
+        lock (_gate)
+        {
+            _cancellation?.Dispose();
+            _cancellation = null;
         }
     }
 }

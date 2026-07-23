@@ -7,7 +7,7 @@ using WAVE.Infrastructure.Configuration;
 namespace WAVE.Infrastructure.Persistence;
 
 /// <summary>Run history in a JSON file (most recent first).</summary>
-public sealed class JsonTestRunRepository : ITestRunRepository
+public sealed class JsonTestRunRepository : ITestRunRepository, IDisposable
 {
     private readonly SemaphoreSlim _mutex = new(1, 1);
     private readonly IAppLogger _logger;
@@ -86,4 +86,6 @@ public sealed class JsonTestRunRepository : ITestRunRepository
         await using var stream = File.Create(_file);
         await JsonSerializer.SerializeAsync(stream, runs, WaveJson.Options, cancellationToken).ConfigureAwait(false);
     }
+
+    public void Dispose() => _mutex.Dispose();
 }

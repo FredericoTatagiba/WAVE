@@ -11,6 +11,7 @@ using WAVE.Application.Security;
 using WAVE.Application.Testing;
 using WAVE.Application.Users;
 using WAVE.Infrastructure.Diagnostics;
+using WAVE.Infrastructure.Export;
 using WAVE.Infrastructure.Logging;
 using WAVE.Infrastructure.Persistence;
 using WAVE.Infrastructure.Process;
@@ -45,6 +46,7 @@ public static class ServiceRegistration
         services.AddSingleton<IWifiTestOrchestrator, WifiTestOrchestrator>();
         services.AddSingleton<NetworkProfileService>();
         services.AddSingleton<TestHistoryService>();
+        services.AddSingleton<HistoryExportService>();
         services.AddSingleton<NetworkDiscoveryService>();
     }
 
@@ -61,6 +63,9 @@ public static class ServiceRegistration
         services.AddSingleton<IVisiblePingTerminal, VisiblePingTerminal>();
         services.AddSingleton<ISpeedMeter, HttpSpeedMeter>();
         services.AddSingleton<IStreamingProbe, HttpStreamingProbe>();
+        services.AddSingleton<IHistoryExporter, CsvHistoryExporter>();
+        services.AddSingleton<IHistoryExporter, XlsxHistoryExporter>();
+        services.AddSingleton<IHistoryExporter, PdfHistoryExporter>();
         services.AddSingleton<INetworkProfileRepository, JsonNetworkProfileRepository>();
         services.AddSingleton<ITestRunRepository, JsonTestRunRepository>();
         services.AddSingleton<ICredentialStore, DpapiCredentialStore>();
@@ -72,6 +77,7 @@ public static class ServiceRegistration
     {
         services.AddSingleton<IUserAlerts, MessageBoxUserAlerts>();
         services.AddSingleton<ICredentialPrompt, CredentialPromptService>();
+        services.AddSingleton<IExportFileDialog, SaveFileDialogExportFileDialog>();
         services.AddSingleton<AppNavigator>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();

@@ -67,7 +67,7 @@ internal static class WlanEapUserData
 
             if (handle != IntPtr.Zero)
             {
-                WlanCloseHandle(handle, IntPtr.Zero);
+                _ = WlanCloseHandle(handle, IntPtr.Zero);
             }
         }
     }

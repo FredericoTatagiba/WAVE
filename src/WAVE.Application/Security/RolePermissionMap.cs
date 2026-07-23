@@ -8,7 +8,7 @@ namespace WAVE.Application.Security;
 /// </summary>
 public static class RolePermissionMap
 {
-    private static readonly IReadOnlyDictionary<UserRole, IReadOnlySet<Permission>> Map =
+    private static readonly Dictionary<UserRole, IReadOnlySet<Permission>> Map =
         new Dictionary<UserRole, IReadOnlySet<Permission>>
         {
             [UserRole.Operator] = new HashSet<Permission>

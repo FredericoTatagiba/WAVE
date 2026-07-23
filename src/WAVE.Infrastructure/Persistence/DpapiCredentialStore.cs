@@ -11,7 +11,7 @@ namespace WAVE.Infrastructure.Persistence;
 /// Stores network secrets encrypted with DPAPI (current-user scope).
 /// The secrets are never written in clear text.
 /// </summary>
-public sealed class DpapiCredentialStore : ICredentialStore
+public sealed class DpapiCredentialStore : ICredentialStore, IDisposable
 {
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("WAVE.Credential.v1");
 
@@ -117,4 +117,6 @@ public sealed class DpapiCredentialStore : ICredentialStore
         await using var stream = File.Create(_file);
         await JsonSerializer.SerializeAsync(stream, store, WaveJson.Options, cancellationToken).ConfigureAwait(false);
     }
+
+    public void Dispose() => _mutex.Dispose();
 }

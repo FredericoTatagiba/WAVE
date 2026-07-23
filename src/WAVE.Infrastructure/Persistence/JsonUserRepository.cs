@@ -6,7 +6,7 @@ using WAVE.Infrastructure.Configuration;
 namespace WAVE.Infrastructure.Persistence;
 
 /// <summary>User repository in a JSON file, with serialized access.</summary>
-public sealed class JsonUserRepository : IUserRepository
+public sealed class JsonUserRepository : IUserRepository, IDisposable
 {
     private sealed record UserRecord(Guid Id, string Username, string DisplayName, UserRole Role, string PasswordHash);
 
@@ -142,4 +142,6 @@ public sealed class JsonUserRepository : IUserRepository
         await using var stream = File.Create(_file);
         await JsonSerializer.SerializeAsync(stream, users, WaveJson.Options, cancellationToken).ConfigureAwait(false);
     }
+
+    public void Dispose() => _mutex.Dispose();
 }

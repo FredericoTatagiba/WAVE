@@ -12,9 +12,9 @@ internal sealed record CommandResult(int ExitCode, string StandardOutput, string
 /// Runs command-line utilities (e.g. <c>netsh</c>) capturing output, without opening
 /// a window. Single responsibility: run the process and collect the result.
 /// </summary>
-internal sealed class CommandLineExecutor
+internal static class CommandLineExecutor
 {
-    public async Task<CommandResult> RunAsync(
+    public static async Task<CommandResult> RunAsync(
         string fileName, string arguments, CancellationToken cancellationToken = default)
     {
         var startInfo = new ProcessStartInfo(fileName, arguments)

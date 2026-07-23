@@ -14,7 +14,6 @@ public sealed class NetshWifiConnector : IWifiConnector
 {
     private readonly IWifiProfileXmlFactory _profileFactory;
     private readonly IAppLogger _logger;
-    private readonly CommandLineExecutor _executor = new();
 
     public NetshWifiConnector(IWifiProfileXmlFactory profileFactory, IAppLogger logger)
     {
@@ -46,7 +45,7 @@ public sealed class NetshWifiConnector : IWifiConnector
 
         try
         {
-            var result = await _executor.RunAsync(
+            var result = await CommandLineExecutor.RunAsync(
                 "netsh", $"wlan add profile filename=\"{temporaryFile}\" user=all", cancellationToken)
                 .ConfigureAwait(false);
 
@@ -110,7 +109,7 @@ public sealed class NetshWifiConnector : IWifiConnector
 
         var safeSsid = ssid.Replace("\"", string.Empty);
 
-        var result = await _executor.RunAsync(
+        var result = await CommandLineExecutor.RunAsync(
             "netsh", $"wlan connect name=\"{safeSsid}\" ssid=\"{safeSsid}\"", cancellationToken)
             .ConfigureAwait(false);
 
@@ -132,7 +131,7 @@ public sealed class NetshWifiConnector : IWifiConnector
 
         var safeSsid = ssid.Replace("\"", string.Empty);
 
-        var result = await _executor.RunAsync(
+        var result = await CommandLineExecutor.RunAsync(
             "netsh", $"wlan delete profile name=\"{safeSsid}\"", cancellationToken)
             .ConfigureAwait(false);
 
@@ -143,7 +142,7 @@ public sealed class NetshWifiConnector : IWifiConnector
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default) =>
-        await _executor.RunAsync("netsh", "wlan disconnect", cancellationToken).ConfigureAwait(false);
+        await CommandLineExecutor.RunAsync("netsh", "wlan disconnect", cancellationToken).ConfigureAwait(false);
 
     private void TryDelete(string path)
     {

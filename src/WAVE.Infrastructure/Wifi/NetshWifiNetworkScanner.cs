@@ -21,13 +21,12 @@ public sealed class NetshWifiNetworkScanner : IWifiNetworkScanner
         new(@"(?<pct>\d{1,3})\s*%", RegexOptions.Compiled);
 
     private readonly IAppLogger _logger;
-    private readonly CommandLineExecutor _executor = new();
 
     public NetshWifiNetworkScanner(IAppLogger logger) => _logger = logger;
 
     public async Task<IReadOnlyList<AvailableNetwork>> ScanAsync(CancellationToken cancellationToken = default)
     {
-        var result = await _executor
+        var result = await CommandLineExecutor
             .RunAsync("netsh", "wlan show networks mode=ssid", cancellationToken)
             .ConfigureAwait(false);
 
@@ -40,7 +39,7 @@ public sealed class NetshWifiNetworkScanner : IWifiNetworkScanner
         return Parse(result.StandardOutput);
     }
 
-    private static IReadOnlyList<AvailableNetwork> Parse(string output)
+    private static List<AvailableNetwork> Parse(string output)
     {
         var networks = new List<AvailableNetwork>();
         var block = new StringBuilder();

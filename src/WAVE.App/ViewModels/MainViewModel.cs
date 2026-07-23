@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -8,6 +9,7 @@ using WAVE.Application.Discovery;
 using WAVE.Application.History;
 using WAVE.Application.Profiles;
 using WAVE.Application.Testing;
+using WAVE.Domain.Common;
 using WAVE.Domain.Networking;
 using WAVE.Domain.Security;
 using WAVE.Domain.Testing;
@@ -27,10 +29,17 @@ public sealed class MainViewModel : ObservableObject
     private readonly TestRunnerOptions _options;
     private readonly ICredentialStore _credentialStore;
     private readonly ICredentialPrompt _credentialPrompt;
+    private readonly HistoryExportService _exportService;
+    private readonly IExportFileDialog _exportDialog;
+
+    private readonly List<TestRun> _allRuns = new();
 
     private string _statusMessage = string.Empty;
     private TestOperationState _state = TestOperationState.Idle;
     private bool _isBusy;
+    private DateTime? _filterFrom;
+    private DateTime? _filterTo;
+    private string _filterSsid = string.Empty;
 
     public MainViewModel(
         IWifiTestOrchestrator orchestrator,
@@ -42,7 +51,9 @@ public sealed class MainViewModel : ObservableObject
         IAppLogger logger,
         TestRunnerOptions options,
         ICredentialStore credentialStore,
-        ICredentialPrompt credentialPrompt)
+        ICredentialPrompt credentialPrompt,
+        HistoryExportService exportService,
+        IExportFileDialog exportDialog)
     {
         _orchestrator = orchestrator;
         _profiles = profiles;
@@ -54,6 +65,8 @@ public sealed class MainViewModel : ObservableObject
         _options = options;
         _credentialStore = credentialStore;
         _credentialPrompt = credentialPrompt;
+        _exportService = exportService;
+        _exportDialog = exportDialog;
 
         Telemetry = new TelemetryViewModel();
 
@@ -61,6 +74,8 @@ public sealed class MainViewModel : ObservableObject
             StopAsync,
             () => State is TestOperationState.Connecting or TestOperationState.TestRunning);
         ScanCommand = new AsyncRelayCommand(LoadNetworksAsync);
+        ExportCommand = new AsyncRelayCommand(ExportAsync);
+        ClearFilterCommand = new RelayCommand(ClearFilter);
 
         _orchestrator.StateChanged += OnStateChanged;
         _orchestrator.PingSampled += OnPingSampled;
@@ -73,6 +88,45 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<TestRunViewModel> History { get; } = new();
 
     public TelemetryViewModel Telemetry { get; }
+
+    /// <summary>Start of the history date filter (inclusive), or null for no lower bound.</summary>
+    public DateTime? FilterFrom
+    {
+        get => _filterFrom;
+        set
+        {
+            if (SetProperty(ref _filterFrom, value))
+            {
+                RefreshHistoryView();
+            }
+        }
+    }
+
+    /// <summary>End of the history date filter (inclusive), or null for no upper bound.</summary>
+    public DateTime? FilterTo
+    {
+        get => _filterTo;
+        set
+        {
+            if (SetProperty(ref _filterTo, value))
+            {
+                RefreshHistoryView();
+            }
+        }
+    }
+
+    /// <summary>SSID substring filter (case-insensitive); empty means no SSID filter.</summary>
+    public string FilterSsid
+    {
+        get => _filterSsid;
+        set
+        {
+            if (SetProperty(ref _filterSsid, value))
+            {
+                RefreshHistoryView();
+            }
+        }
+    }
 
     public string RoleName => _currentUser.Role == UserRole.Administrator ? "Administrador" : "Operador";
 
@@ -115,6 +169,10 @@ public sealed class MainViewModel : ObservableObject
     public IAsyncRelayCommand StopCommand { get; }
 
     public IAsyncRelayCommand ScanCommand { get; }
+
+    public IAsyncRelayCommand ExportCommand { get; }
+
+    public IRelayCommand ClearFilterCommand { get; }
 
     public async Task InitializeAsync()
     {
@@ -316,13 +374,74 @@ public sealed class MainViewModel : ObservableObject
 
         RunOnUi(() =>
         {
-            History.Clear();
-            foreach (var run in result.Value)
-            {
-                History.Add(new TestRunViewModel(run));
-            }
+            _allRuns.Clear();
+            _allRuns.AddRange(result.Value);
+            RefreshHistoryView();
         });
     }
+
+    /// <summary>Rebuilds the visible history from the loaded runs, applying the current filter.</summary>
+    private void RefreshHistoryView()
+    {
+        History.Clear();
+        foreach (var run in CurrentFilter().Apply(_allRuns))
+        {
+            History.Add(new TestRunViewModel(run));
+        }
+    }
+
+    /// <summary>Builds the <see cref="HistoryFilter"/> from the current UI inputs.</summary>
+    private HistoryFilter CurrentFilter()
+    {
+        var offset = DateTimeOffset.Now.Offset;
+
+        // Dates are day-granular in the picker: include the whole "from" day and "to" day.
+        DateTimeOffset? from = FilterFrom is { } f ? new DateTimeOffset(f.Date, offset) : null;
+        DateTimeOffset? to = FilterTo is { } t ? new DateTimeOffset(t.Date.AddDays(1).AddTicks(-1), offset) : null;
+        var ssid = string.IsNullOrWhiteSpace(FilterSsid) ? null : FilterSsid.Trim();
+
+        return new HistoryFilter(from, to, ssid);
+    }
+
+    private void ClearFilter()
+    {
+        FilterFrom = null;
+        FilterTo = null;
+        FilterSsid = string.Empty;
+    }
+
+    private async Task ExportAsync()
+    {
+        var target = _exportDialog.PickSaveTarget(_exportService.AvailableExporters, SuggestedFileName());
+        if (target is null)
+        {
+            return;
+        }
+
+        try
+        {
+            Result result;
+            await using (var stream = File.Create(target.Path))
+            {
+                result = await _exportService.ExportAsync(CurrentFilter(), target.Format, stream).ConfigureAwait(false);
+            }
+
+            if (result.IsFailure)
+            {
+                _alerts.Error(result.Error);
+                return;
+            }
+
+            StatusMessage = $"Histórico exportado: {target.Path}";
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to export the history.", exception);
+            _alerts.Error("Falha ao exportar o histórico.");
+        }
+    }
+
+    private static string SuggestedFileName() => $"wave-historico-{DateTime.Now:yyyyMMdd-HHmm}";
 
     private void OnStateChanged(object? sender, TestStateChangedEventArgs e) => RunOnUi(() => ApplyState(e));
 

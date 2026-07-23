@@ -6,7 +6,7 @@ using WAVE.Infrastructure.Configuration;
 namespace WAVE.Infrastructure.Persistence;
 
 /// <summary>Profile repository in a JSON file, with serialized access.</summary>
-public sealed class JsonNetworkProfileRepository : INetworkProfileRepository
+public sealed class JsonNetworkProfileRepository : INetworkProfileRepository, IDisposable
 {
     private readonly SemaphoreSlim _mutex = new(1, 1);
     private readonly IAppLogger _logger;
@@ -98,4 +98,6 @@ public sealed class JsonNetworkProfileRepository : INetworkProfileRepository
         await using var stream = File.Create(_file);
         await JsonSerializer.SerializeAsync(stream, profiles, WaveJson.Options, cancellationToken).ConfigureAwait(false);
     }
+
+    public void Dispose() => _mutex.Dispose();
 }

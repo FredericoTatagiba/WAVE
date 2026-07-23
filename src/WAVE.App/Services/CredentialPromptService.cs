@@ -4,7 +4,7 @@ using WAVE.Domain.Networking;
 
 namespace WAVE.App.Services;
 
-/// <summary>Implementa <see cref="ICredentialPrompt"/> exibindo <see cref="CredentialPromptWindow"/>.</summary>
+/// <summary>Implements <see cref="ICredentialPrompt"/> by showing a <see cref="CredentialPromptWindow"/>.</summary>
 public sealed class CredentialPromptService : ICredentialPrompt
 {
     public WifiSecret? Request(WifiNetworkProfile profile)
