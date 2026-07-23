@@ -5,8 +5,8 @@ using WAVE.Domain.Testing;
 namespace WAVE.Application.Testing;
 
 /// <summary>
-/// Orquestra o ciclo de vida de um teste de conectividade (máquina de estados).
-/// A UI depende desta abstração, não da implementação.
+/// Orchestrates the lifecycle of a connectivity test (state machine).
+/// The UI depends on this abstraction, not on the implementation.
 /// </summary>
 public interface IWifiTestOrchestrator
 {
@@ -17,6 +17,9 @@ public interface IWifiTestOrchestrator
     event EventHandler<TestStateChangedEventArgs>? StateChanged;
 
     event EventHandler<PingSample>? PingSampled;
+
+    /// <summary>Live throughput readings emitted during the speed measurement (fast.com-style).</summary>
+    event EventHandler<SpeedSample>? SpeedSampled;
 
     /// <summary>
     /// Runs the connect + validation flow for the given network. A credential just
@@ -29,9 +32,9 @@ public interface IWifiTestOrchestrator
         WifiSecret? providedSecret = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Encerra o teste em andamento e retorna ao estado ocioso.</summary>
+    /// <summary>Stops the running test and returns to the idle state.</summary>
     Task StopAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Reconhece uma falha (após alerta) e retorna ao estado ocioso.</summary>
+    /// <summary>Acknowledges a failure (after the alert) and returns to the idle state.</summary>
     void AcknowledgeFailure();
 }

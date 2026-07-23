@@ -3,7 +3,7 @@ using WAVE.Domain.Testing;
 
 namespace WAVE.App.ViewModels;
 
-/// <summary>Projeção somente-leitura de um <see cref="TestRun"/> para o histórico.</summary>
+/// <summary>Read-only projection of a <see cref="TestRun"/> for the history.</summary>
 public sealed class TestRunViewModel
 {
     public TestRunViewModel(TestRun run)
@@ -62,9 +62,9 @@ public sealed class TestRunViewModel
 
     public string AverageLatencyText { get; }
 
-    /// <summary>Vazão medida (download/upload), ou "—" quando não capturada.</summary>
+    /// <summary>Measured throughput (download/upload), or "—" when not captured.</summary>
     public string SpeedText { get; }
 
-    /// <summary>Estabilidade de streaming, ou "—" quando não capturada.</summary>
+    /// <summary>Streaming stability, or "—" when not captured.</summary>
     public string StreamingText { get; }
 }

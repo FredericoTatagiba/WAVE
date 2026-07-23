@@ -8,9 +8,9 @@ using Xunit;
 namespace WAVE.UnitTests;
 
 /// <summary>
-/// Cobre o gerenciamento de perfis, com foco na melhoria "salvar a rede ao
-/// selecionar": <see cref="NetworkProfileService.RememberForTestingAsync"/> deve
-/// persistir perfil + credencial para testes futuros, com RBAC de operador.
+/// Covers profile management, focused on the "remember the network on selection"
+/// improvement: <see cref="NetworkProfileService.RememberForTestingAsync"/> must
+/// persist profile + credential for future tests, under operator RBAC.
 /// </summary>
 public class NetworkProfileServiceTests
 {
@@ -92,8 +92,8 @@ public class NetworkProfileServiceTests
     [Fact]
     public async Task Operator_CannotCurateCatalog_ButCanRememberNetwork()
     {
-        // SaveAsync é curadoria do catálogo (ManageProfiles: admin). O operador não
-        // pode, mas PODE memorizar uma rede recém-selecionada (RunTest).
+        // SaveAsync curates the catalog (ManageProfiles: admin). The operator cannot,
+        // but CAN remember a just-selected network (RunTest).
         var (service, repo, _) = BuildFor(UserRole.Operator);
         var profile = ProtectedProfile();
         var secret = new WifiSecret("senha");

@@ -83,6 +83,8 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
 
     public event EventHandler<PingSample>? PingSampled;
 
+    public event EventHandler<SpeedSample>? SpeedSampled;
+
     public async Task<Result> RunTestAsync(
         WifiNetworkProfile profile,
         WifiSecret? providedSecret = null,
@@ -203,7 +205,9 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     {
         try
         {
-            _speed = await _speedMeter.MeasureAsync(cancellationToken).ConfigureAwait(false);
+            // Relays each live reading to subscribers (UI gauge) as an Observer event.
+            var progress = new Progress<SpeedSample>(sample => SpeedSampled?.Invoke(this, sample));
+            _speed = await _speedMeter.MeasureAsync(progress, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception)
         {

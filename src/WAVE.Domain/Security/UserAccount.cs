@@ -10,7 +10,7 @@ public sealed class UserAccount
     {
         if (string.IsNullOrWhiteSpace(username))
         {
-            throw new ArgumentException("Login é obrigatório.", nameof(username));
+            throw new ArgumentException("Login is required.", nameof(username));
         }
 
         Id = id;

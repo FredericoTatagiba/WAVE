@@ -178,9 +178,12 @@ internal sealed class FakeSpeedMeter : ISpeedMeter
 
     public bool Called { get; private set; }
 
-    public Task<SpeedResult> MeasureAsync(CancellationToken cancellationToken = default)
+    public Task<SpeedResult> MeasureAsync(
+        IProgress<SpeedSample>? progress = null, CancellationToken cancellationToken = default)
     {
         Called = true;
+        progress?.Report(new SpeedSample(SpeedPhase.Download, _result.DownloadMbps));
+        progress?.Report(new SpeedSample(SpeedPhase.Upload, _result.UploadMbps));
         return Task.FromResult(_result);
     }
 }
@@ -257,7 +260,7 @@ internal sealed class FakeUserRepository : IUserRepository
     }
 }
 
-/// <summary>Relógio que avança um passo fixo a cada leitura (para testar timeouts).</summary>
+/// <summary>Clock that advances by a fixed step on each read (to test timeouts).</summary>
 internal sealed class AdvancingClock : IClock
 {
     private readonly TimeSpan _step;

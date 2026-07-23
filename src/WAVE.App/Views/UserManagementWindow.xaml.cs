@@ -4,7 +4,7 @@ using WAVE.Domain.Security;
 
 namespace WAVE.App.Views;
 
-/// <summary>Janela de gestão de usuários. Lê os campos e delega à ViewModel.</summary>
+/// <summary>User management window. Reads the fields and delegates to the ViewModel.</summary>
 public partial class UserManagementWindow : Window
 {
     private readonly UserManagementViewModel _viewModel;

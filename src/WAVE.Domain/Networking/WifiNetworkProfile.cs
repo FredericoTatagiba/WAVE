@@ -25,14 +25,14 @@ public sealed class WifiNetworkProfile
     {
         if (string.IsNullOrWhiteSpace(ssid))
         {
-            throw new ArgumentException("SSID é obrigatório.", nameof(ssid));
+            throw new ArgumentException("SSID is required.", nameof(ssid));
         }
 
         var trimmed = ssid.Trim();
         if (trimmed.Length > MaxSsidLength)
         {
             throw new ArgumentException(
-                $"SSID excede {MaxSsidLength} caracteres.", nameof(ssid));
+                $"SSID exceeds {MaxSsidLength} characters.", nameof(ssid));
         }
 
         Ssid = trimmed;

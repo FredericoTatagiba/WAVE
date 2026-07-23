@@ -61,7 +61,7 @@ public class WlanProfileXmlBuilderTests
         Assert.Contains("<OneX", xml);
         Assert.Contains("<Type>25</Type>", xml); // PEAP
         Assert.Contains("<Type>26</Type>", xml); // MSCHAPv2
-        // O perfil NUNCA embute a senha do usuário (vai no EAP user data).
+        // The profile NEVER embeds the user's password (it goes in the EAP user data).
         Assert.DoesNotContain("senha", xml);
         Assert.DoesNotContain("sharedKey", xml);
     }

@@ -14,7 +14,7 @@
 
         <TextBlock Grid.Row="0" Text="Usuários" Style="{StaticResource HeadingText}" FontSize="20" />
 
-        <!-- Lista de usuários -->
+        <!-- User list -->
         <Border Grid.Row="1" Background="{StaticResource BrushSurface}" CornerRadius="10" Padding="10" Margin="0,4,0,12">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding Users}">
@@ -50,7 +50,7 @@
             </ScrollViewer>
         </Border>
 
-        <!-- Formulário: adicionar usuário / redefinir senha -->
+        <!-- Form: add user / reset password -->
         <Border Grid.Row="2" Background="{StaticResource BrushSurface}" CornerRadius="10" Padding="12">
             <StackPanel>
                 <TextBlock Text="Adicionar usuário" Style="{StaticResource HeadingText}" />

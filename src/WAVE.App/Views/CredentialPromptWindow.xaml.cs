@@ -3,7 +3,7 @@ using WAVE.Domain.Networking;
 
 namespace WAVE.App.Views;
 
-/// <summary>Diálogo modal para captura da credencial de uma rede protegida.</summary>
+/// <summary>Modal dialog to capture the credential of a protected network.</summary>
 public partial class CredentialPromptWindow : Window
 {
     private readonly WifiNetworkProfile _profile;

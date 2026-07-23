@@ -4,16 +4,16 @@ using WAVE.Domain.Networking;
 namespace WAVE.Application.Abstractions;
 
 /// <summary>
-/// Integra com o subsistema Wi-Fi do Windows (netsh / Native Wi-Fi):
-/// garante o perfil e realiza a associação.
+/// Integrates with the Windows Wi-Fi subsystem (netsh / Native Wi-Fi):
+/// ensures the profile and performs the association.
 /// </summary>
 public interface IWifiConnector
 {
-    /// <summary>Cria o perfil da rede caso ainda não exista no Windows.</summary>
+    /// <summary>Creates the network profile if it does not yet exist in Windows.</summary>
     Task<Result> EnsureProfileAsync(
         WifiNetworkProfile profile, WifiSecret? secret, CancellationToken cancellationToken = default);
 
-    /// <summary>Solicita a conexão com o SSID informado.</summary>
+    /// <summary>Requests connection to the given SSID.</summary>
     Task<Result> ConnectAsync(string ssid, CancellationToken cancellationToken = default);
 
     /// <summary>

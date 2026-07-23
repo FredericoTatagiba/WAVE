@@ -14,7 +14,7 @@ using WAVE.Domain.Testing;
 
 namespace WAVE.App.ViewModels;
 
-/// <summary>ViewModel principal: coordena lista de redes, telemetria e histórico.</summary>
+/// <summary>Main ViewModel: coordinates the network list, telemetry and history.</summary>
 public sealed class MainViewModel : ObservableObject
 {
     private readonly IWifiTestOrchestrator _orchestrator;
@@ -64,6 +64,7 @@ public sealed class MainViewModel : ObservableObject
 
         _orchestrator.StateChanged += OnStateChanged;
         _orchestrator.PingSampled += OnPingSampled;
+        _orchestrator.SpeedSampled += OnSpeedSampled;
         _currentUser.Changed += OnUserChanged;
     }
 
@@ -121,10 +122,10 @@ public sealed class MainViewModel : ObservableObject
         await LoadHistoryAsync().ConfigureAwait(false);
     }
 
-    /// <summary>Opções de segurança para o formulário de cadastro (admin).</summary>
+    /// <summary>Security options for the registration form (admin).</summary>
     public Array SecurityOptions { get; } = Enum.GetValues(typeof(SecurityType));
 
-    /// <summary>Cadastra/atualiza uma rede (operação de Administrador).</summary>
+    /// <summary>Registers/updates a network (Administrator operation).</summary>
     public async Task AddNetworkAsync(
         string displayName, string ssid, SecurityType security, string password,
         string? username = null, string? domain = null)
@@ -166,7 +167,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao cadastrar a rede.", exception);
+            _logger.Error("Failed to register the network.", exception);
             _alerts.Error("Falha ao cadastrar a rede.");
         }
     }
@@ -210,7 +211,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception exception)
         {
-            _logger.Error("Erro ao executar o teste de conectividade.", exception);
+            _logger.Error("Error while running the connectivity test.", exception);
             _alerts.Error("Erro inesperado ao executar o teste.");
         }
     }
@@ -288,7 +289,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception exception)
         {
-            _logger.Error("Falha ao descobrir redes.", exception);
+            _logger.Error("Failed to discover networks.", exception);
             _alerts.Error("Falha ao buscar as redes.");
         }
     }
@@ -349,6 +350,8 @@ public sealed class MainViewModel : ObservableObject
     }
 
     private void OnPingSampled(object? sender, PingSample sample) => RunOnUi(() => Telemetry.AddSample(sample));
+
+    private void OnSpeedSampled(object? sender, SpeedSample sample) => RunOnUi(() => Telemetry.AddSpeedSample(sample));
 
     private void OnUserChanged(object? sender, EventArgs e) => RunOnUi(() =>
     {

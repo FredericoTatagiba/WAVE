@@ -3,7 +3,7 @@ using WAVE.Application.Security;
 
 namespace WAVE.App.ViewModels;
 
-/// <summary>ViewModel do login. Alterna entre "criar administrador" (1º acesso) e "entrar".</summary>
+/// <summary>Login ViewModel. Toggles between "create administrator" (first run) and "sign in".</summary>
 public sealed class LoginViewModel : ObservableObject
 {
     private readonly AuthenticationService _authentication;

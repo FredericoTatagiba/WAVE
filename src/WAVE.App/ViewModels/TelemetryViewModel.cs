@@ -5,7 +5,7 @@ using WAVE.Domain.Testing;
 
 namespace WAVE.App.ViewModels;
 
-/// <summary>Telemetria in-app: série de latência para o gráfico e indicadores agregados.</summary>
+/// <summary>In-app telemetry: latency series for the chart and aggregated indicators.</summary>
 public sealed class TelemetryViewModel : ObservableObject
 {
     private const int MaxPoints = 120;
@@ -17,9 +17,33 @@ public sealed class TelemetryViewModel : ObservableObject
     private double _packetLossPercent;
     private int _sent;
     private int _received;
+    private double _downloadMbps;
+    private double _uploadMbps;
+    private string _speedPhaseText = string.Empty;
 
-    /// <summary>Últimas latências (ms), consumidas pelo componente de gráfico.</summary>
+    /// <summary>Latest latencies (ms), consumed by the chart component.</summary>
     public ObservableCollection<double> Latencies { get; } = new();
+
+    /// <summary>Live download rate (Mbps) — the hero number of the fast.com-style gauge.</summary>
+    public double DownloadMbps
+    {
+        get => _downloadMbps;
+        private set => SetProperty(ref _downloadMbps, value);
+    }
+
+    /// <summary>Live upload rate (Mbps), shown as the secondary value on the gauge.</summary>
+    public double UploadMbps
+    {
+        get => _uploadMbps;
+        private set => SetProperty(ref _uploadMbps, value);
+    }
+
+    /// <summary>Current speed phase label ("Baixando…"/"Enviando…"), empty when idle.</summary>
+    public string SpeedPhaseText
+    {
+        get => _speedPhaseText;
+        private set => SetProperty(ref _speedPhaseText, value);
+    }
 
     public double LastLatencyMs
     {
@@ -69,6 +93,25 @@ public sealed class TelemetryViewModel : ObservableObject
         LastLatencyMs = sample.Success ? Math.Round(sample.LatencyMs, 0) : 0d;
     }
 
+    /// <summary>
+    /// Applies a live throughput reading to the gauge. Download drives the hero number
+    /// (climbs during the download phase); upload updates the secondary value.
+    /// </summary>
+    public void AddSpeedSample(SpeedSample sample)
+    {
+        var mbps = Math.Round(sample.Mbps, 1);
+        if (sample.Phase == SpeedPhase.Download)
+        {
+            DownloadMbps = mbps;
+            SpeedPhaseText = "Baixando…";
+        }
+        else
+        {
+            UploadMbps = mbps;
+            SpeedPhaseText = "Enviando…";
+        }
+    }
+
     public void Reset()
     {
         _samples.Clear();
@@ -78,5 +121,8 @@ public sealed class TelemetryViewModel : ObservableObject
         LastLatencyMs = 0d;
         AverageLatencyMs = 0d;
         PacketLossPercent = 0d;
+        DownloadMbps = 0d;
+        UploadMbps = 0d;
+        SpeedPhaseText = string.Empty;
     }
 }

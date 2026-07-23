@@ -4,8 +4,8 @@ using Xunit;
 namespace WAVE.UnitTests;
 
 /// <summary>
-/// Regra compartilhada (dominio + UI) que decide quando os campos de senha e de
-/// usuario/dominio devem aparecer no cadastro manual.
+/// Shared rule (domain + UI) that decides when the password and username/domain
+/// fields should appear in the manual registration form.
 /// </summary>
 public class SecurityTypeExtensionsTests
 {

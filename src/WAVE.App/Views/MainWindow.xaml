@@ -10,7 +10,7 @@
 
     <DockPanel LastChildFill="True">
 
-        <!-- Barra superior -->
+        <!-- Top bar -->
         <Border DockPanel.Dock="Top" Background="{StaticResource BrushSurface}" Padding="16,10">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -40,13 +40,13 @@
             </Grid>
         </Border>
 
-        <!-- Barra de status -->
+        <!-- Status bar -->
         <Border DockPanel.Dock="Bottom" Background="{StaticResource BrushSurface}" Padding="16,8"
                 Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}">
             <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource BrushAccent}" TextWrapping="Wrap" />
         </Border>
 
-        <!-- Conteúdo responsivo: lista de redes + telemetria -->
+        <!-- Responsive content: network list + telemetry -->
         <ctrl:ResponsiveSplitView Margin="12">
 
             <ctrl:ResponsiveSplitView.PrimaryContent>
@@ -58,7 +58,7 @@
                                     Command="{Binding ScanCommand}" Style="{StaticResource ActionButtonStyle}" />
                         </DockPanel>
 
-                        <!-- Cadastro de rede: componente próprio, visível apenas ao Administrador (RBAC) -->
+                        <!-- Network registration: its own component, visible only to the Administrator (RBAC) -->
                         <ctrl:AddNetworkPanel DockPanel.Dock="Bottom"
                                               Visibility="{Binding IsAdministrator, Converter={StaticResource BoolToVis}}" />
 
@@ -89,7 +89,7 @@
                             <RowDefinition Height="3*" />
                         </Grid.RowDefinitions>
 
-                        <!-- Indicadores -->
+                        <!-- Indicators -->
                         <StackPanel Grid.Row="0" Orientation="Horizontal">
                             <Border Background="#FF0E1621" CornerRadius="8" Padding="14,10" Margin="0,0,8,10">
                                 <StackPanel>
@@ -121,13 +121,29 @@
                             </Border>
                         </StackPanel>
 
-                        <!-- Gráfico de latência -->
-                        <DockPanel Grid.Row="1" Margin="0,0,0,10">
-                            <TextBlock DockPanel.Dock="Top" Text="Latência de ping (ms)" Style="{StaticResource HeadingText}" />
-                            <ctrl:PingLatencyChart ItemsSource="{Binding Telemetry.Latencies}" />
-                        </DockPanel>
+                        <!-- Latency chart + live speed gauge: side by side when wide, stacked when narrow -->
+                        <ctrl:ResponsiveSplitView Grid.Row="1" Margin="0,0,0,10"
+                                                  StackBelowWidth="520"
+                                                  PrimaryLength="3*" SecondaryLength="2*"
+                                                  StackedPrimaryLength="*" StackedSecondaryLength="Auto">
+                            <ctrl:ResponsiveSplitView.PrimaryContent>
+                                <DockPanel Margin="3">
+                                    <TextBlock DockPanel.Dock="Top" Text="Latência de ping (ms)" Style="{StaticResource HeadingText}" />
+                                    <ctrl:PingLatencyChart ItemsSource="{Binding Telemetry.Latencies}" />
+                                </DockPanel>
+                            </ctrl:ResponsiveSplitView.PrimaryContent>
 
-                        <!-- Histórico -->
+                            <ctrl:ResponsiveSplitView.SecondaryContent>
+                                <DockPanel Margin="3">
+                                    <TextBlock DockPanel.Dock="Top" Text="Velocidade Wi-Fi" Style="{StaticResource HeadingText}" />
+                                    <ctrl:SpeedGauge DownloadMbps="{Binding Telemetry.DownloadMbps}"
+                                                     UploadMbps="{Binding Telemetry.UploadMbps}"
+                                                     PhaseText="{Binding Telemetry.SpeedPhaseText}" />
+                                </DockPanel>
+                            </ctrl:ResponsiveSplitView.SecondaryContent>
+                        </ctrl:ResponsiveSplitView>
+
+                        <!-- History -->
                         <DockPanel Grid.Row="2">
                             <TextBlock DockPanel.Dock="Top" Text="Histórico de execuções" Style="{StaticResource HeadingText}" />
                             <TextBlock DockPanel.Dock="Top" Style="{StaticResource MutedText}" Margin="0,0,0,8"

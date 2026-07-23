@@ -1,4 +1,3 @@
-using System.Security;
 using System.Xml.Linq;
 using WAVE.Application.Abstractions;
 using WAVE.Domain.Networking;
@@ -30,7 +29,7 @@ public sealed class WlanProfileXmlBuilder : IWifiProfileXmlFactory
         {
             if (secret is null || string.IsNullOrEmpty(secret.Passphrase))
             {
-                throw new InvalidOperationException("Credencial ausente para rede protegida.");
+                throw new InvalidOperationException("Missing credential for a protected network.");
             }
 
             security.Add(new XElement(Ns + "sharedKey",
@@ -68,14 +67,14 @@ public sealed class WlanProfileXmlBuilder : IWifiProfileXmlFactory
 
         if (string.IsNullOrWhiteSpace(secret.Username))
         {
-            throw new InvalidOperationException("Rede Enterprise exige um usuário.");
+            throw new InvalidOperationException("An Enterprise network requires a username.");
         }
 
-        var user = SecurityElement.Escape(secret.Username.Trim());
-        var password = SecurityElement.Escape(secret.Passphrase);
+        var user = EscapeXmlText(secret.Username.Trim());
+        var password = EscapeXmlText(secret.Passphrase);
         var domainLine = string.IsNullOrWhiteSpace(secret.Domain)
             ? string.Empty
-            : $"\n        <MsChapV2:LogonDomain>{SecurityElement.Escape(secret.Domain.Trim())}</MsChapV2:LogonDomain>";
+            : $"\n        <MsChapV2:LogonDomain>{EscapeXmlText(secret.Domain.Trim())}</MsChapV2:LogonDomain>";
 
         return
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -100,6 +99,16 @@ public sealed class WlanProfileXmlBuilder : IWifiProfileXmlFactory
             "</EapHostUserCredentials>";
     }
 
+    /// <summary>
+    /// Escapes the characters that are significant in XML element content (&amp;, &lt;, &gt;).
+    /// Quotes are inert inside element content, so they are left as-is — matching the EAP
+    /// credentials, which are always written as element text, never as attribute values.
+    /// </summary>
+    private static string EscapeXmlText(string value) => value
+        .Replace("&", "&amp;")
+        .Replace("<", "&lt;")
+        .Replace(">", "&gt;");
+
     private static XElement BuildAuthEncryption(SecurityType security)
     {
         var (authentication, useOneX) = security switch
@@ -109,7 +118,7 @@ public sealed class WlanProfileXmlBuilder : IWifiProfileXmlFactory
             SecurityType.Wpa3Personal => ("WPA3SAE", false),
             SecurityType.Wpa2Enterprise => ("WPA2", true),
             SecurityType.Wpa3Enterprise => ("WPA3ENT", true),
-            _ => throw new NotSupportedException($"Segurança não suportada: {security}.")
+            _ => throw new NotSupportedException($"Unsupported security type: {security}.")
         };
 
         var encryption = security == SecurityType.Open ? "none" : "AES";

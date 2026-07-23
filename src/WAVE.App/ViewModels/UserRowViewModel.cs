@@ -3,7 +3,7 @@ using WAVE.Domain.Security;
 
 namespace WAVE.App.ViewModels;
 
-/// <summary>Linha da lista de usuários, com ações de papel e exclusão.</summary>
+/// <summary>Row in the user list, with role and deletion actions.</summary>
 public sealed class UserRowViewModel
 {
     public UserRowViewModel(

@@ -3,7 +3,7 @@ using WAVE.App.ViewModels;
 
 namespace WAVE.App.Views;
 
-/// <summary>Janela de login / primeiro acesso. Lê os PasswordBox (não vinculáveis).</summary>
+/// <summary>Login / first-run window. Reads the PasswordBox values (not bindable).</summary>
 public partial class LoginWindow : Window
 {
     private readonly LoginViewModel _viewModel;

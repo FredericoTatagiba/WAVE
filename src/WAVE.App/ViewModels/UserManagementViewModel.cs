@@ -6,7 +6,7 @@ using WAVE.Domain.Security;
 
 namespace WAVE.App.ViewModels;
 
-/// <summary>Gestão de usuários (Administrador): listar, criar, mudar papel, redefinir senha e excluir.</summary>
+/// <summary>User management (Administrator): list, create, change role, reset password and delete.</summary>
 public sealed class UserManagementViewModel : ObservableObject
 {
     private readonly UserManagementService _service;

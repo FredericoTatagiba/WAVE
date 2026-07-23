@@ -4,8 +4,8 @@ using WAVE.Infrastructure.Process;
 namespace WAVE.Infrastructure.Wifi;
 
 /// <summary>
-/// Lista os perfis salvos no Windows via <c>netsh wlan show profiles</c>. Extrai o
-/// nome à direita do separador " : ", independente do idioma do sistema.
+/// Lists the profiles saved in Windows via <c>netsh wlan show profiles</c>. Extracts the
+/// name to the right of the " : " separator, regardless of the system language.
 /// </summary>
 public sealed class NetshWifiProfileCatalog : IWifiProfileCatalog
 {

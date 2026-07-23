@@ -5,8 +5,8 @@ using Xunit;
 namespace WAVE.UnitTests;
 
 /// <summary>
-/// Deriva o tipo de segurança do texto do netsh, distinguindo Personal de
-/// Enterprise (802.1X) — base para a descoberta oferecer usuário/domínio.
+/// Derives the security type from the netsh text, distinguishing Personal from
+/// Enterprise (802.1X) — the basis for discovery to offer username/domain.
 /// </summary>
 public class WifiSecurityParserTests
 {
@@ -30,7 +30,7 @@ public class WifiSecurityParserTests
     [Fact]
     public void FromNetshBlock_IgnoresLabelLocaleUsesValueTokens()
     {
-        // Bloco realista (rótulos podem estar localizados; os valores são estáveis).
+        // Realistic block (labels may be localized; the values are stable).
         var block =
             "    Tipo de rede            : Infraestrutura\n" +
             "    Autenticação            : WPA3-Enterprise\n" +

@@ -5,7 +5,7 @@ using WAVE.Domain.Testing;
 
 namespace WAVE.App.ViewModels;
 
-/// <summary>ViewModel de um botão de rede (componente reutilizável da lista).</summary>
+/// <summary>ViewModel for a network button (reusable list component).</summary>
 public sealed class NetworkButtonViewModel : ObservableObject
 {
     private TestOperationState _state = TestOperationState.Idle;
@@ -27,12 +27,12 @@ public sealed class NetworkButtonViewModel : ObservableObject
     public string Ssid => Profile.Ssid;
 
     /// <summary>
-    /// Rede já conhecida pelo sistema (aberta, salva no Windows ou já cadastrada):
-    /// não é preciso pedir a senha ao selecioná-la.
+    /// Network already known to the system (open, saved in Windows or already registered):
+    /// there is no need to ask for the password when selecting it.
     /// </summary>
     public bool ReadyToConnect { get; }
 
-    /// <summary>Linha auxiliar (segurança, prontidão e sinal).</summary>
+    /// <summary>Auxiliary line (security, readiness and signal).</summary>
     public string Info { get; }
 
     public TestOperationState State

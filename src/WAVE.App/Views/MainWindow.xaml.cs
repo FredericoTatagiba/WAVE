@@ -4,7 +4,7 @@ using WAVE.App.ViewModels;
 
 namespace WAVE.App.Views;
 
-/// <summary>Janela principal. Conecta a ViewModel e coordena login/logout e gestão de usuários.</summary>
+/// <summary>Main window. Wires up the ViewModel and coordinates login/logout and user management.</summary>
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
@@ -23,8 +23,8 @@ public partial class MainWindow : Window
 
     private async void OnLogoutClick(object sender, RoutedEventArgs e)
     {
-        // Fecha (oculta) a página anterior, faz login e recarrega o estado do novo
-        // usuário. Se cancelado, o navegador encerra o app.
+        // Closes (hides) the previous page, signs in and reloads the new user's
+        // state. If cancelled, the navigator shuts the app down.
         if (_navigator.Logout(this))
         {
             await _viewModel.InitializeAsync();
