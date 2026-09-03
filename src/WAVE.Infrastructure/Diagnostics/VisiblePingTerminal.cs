@@ -31,23 +31,61 @@ public sealed class VisiblePingTerminal : IVisiblePingTerminal
             return;
         }
 
+        if (OperatingSystem.IsWindows())
+        {
+            TryStart(
+                new ProcessStartInfo("cmd.exe", $"/k ping {safeHost} -t")
+                {
+                    UseShellExecute = true,
+                    WindowStyle = ProcessWindowStyle.Normal
+                });
+            return;
+        }
+
+        // No single terminal emulator is guaranteed on Linux, so try the common ones.
+        // `ping` there runs indefinitely by default — the Windows `-t` flag would be
+        // rejected as an unknown option.
+        foreach (var (emulator, flag) in LinuxTerminals)
+        {
+            var startInfo = new ProcessStartInfo(emulator) { UseShellExecute = false };
+            startInfo.ArgumentList.Add(flag);
+            startInfo.ArgumentList.Add("ping");
+            startInfo.ArgumentList.Add(safeHost);
+
+            if (TryStart(startInfo))
+            {
+                return;
+            }
+        }
+
+        _logger.Warn("No terminal emulator found; the in-app latency chart still updates.");
+    }
+
+    private static IEnumerable<(string Emulator, string Flag)> LinuxTerminals =>
+    [
+        ("x-terminal-emulator", "-e"),
+        ("gnome-terminal", "--"),
+        ("konsole", "-e"),
+        ("xfce4-terminal", "-e"),
+        ("xterm", "-e")
+    ];
+
+    private bool TryStart(ProcessStartInfo startInfo)
+    {
         try
         {
-            var startInfo = new ProcessStartInfo("cmd.exe", $"/k ping {safeHost} -t")
-            {
-                UseShellExecute = true,
-                WindowStyle = ProcessWindowStyle.Normal
-            };
-
             using var process = System.Diagnostics.Process.Start(startInfo);
             if (process is not null)
             {
                 _terminator.Track(process.Id);
             }
+
+            return true;
         }
         catch (Exception exception)
         {
-            _logger.Error("Could not open the ping terminal.", exception);
+            _logger.Warn($"Could not open '{startInfo.FileName}': {exception.Message}");
+            return false;
         }
     }
 

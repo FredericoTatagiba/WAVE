@@ -77,7 +77,7 @@ public sealed class NetshWifiNetworkScanner : IWifiNetworkScanner
     }
 
     private static SecurityType DetermineSecurity(string blockText) =>
-        WifiSecurityParser.FromNetshBlock(blockText);
+        WifiSecurityParser.FromSecurityText(blockText);
 
     private static int ExtractSignal(string blockText)
     {

@@ -3,21 +3,30 @@ using WAVE.Domain.Networking;
 namespace WAVE.Application.Networking;
 
 /// <summary>
-/// Derives the <see cref="SecurityType"/> from the authentication text of
-/// <c>netsh wlan show networks</c>. It relies on stable tokens in the value
-/// (WPA2/WPA3/Enterprise/Open) — not on the localized Windows label — which
-/// allows distinguishing Personal from Enterprise (802.1X). Pure, testable logic.
+/// Derives the <see cref="SecurityType"/> from the security text reported by the
+/// platform: the authentication line of <c>netsh wlan show networks</c> on Windows, the
+/// SECURITY field of <c>nmcli device wifi list</c> on Linux. It relies on stable tokens
+/// in the value (WPA2/WPA3/Enterprise/802.1X) — not on the localized label — which allows
+/// distinguishing Personal from Enterprise. Pure, testable logic.
 /// </summary>
 public static class WifiSecurityParser
 {
-    public static SecurityType FromNetshBlock(string text)
+    /// <summary>Reads the security tokens out of a platform-reported security string.</summary>
+    /// <remarks>
+    /// WEP collapses to <see cref="SecurityType.Open"/>: neither backend can build a WEP
+    /// profile, so there is no type to map it to. Pre-existing behaviour on Windows.
+    /// </remarks>
+    public static SecurityType FromSecurityText(string text)
     {
         if (string.IsNullOrEmpty(text))
         {
+            // nmcli reports an open network as an empty SECURITY field.
             return SecurityType.Open;
         }
 
-        var isEnterprise = text.Contains("Enterprise", StringComparison.OrdinalIgnoreCase);
+        var isEnterprise =
+            text.Contains("Enterprise", StringComparison.OrdinalIgnoreCase) ||
+            text.Contains("802.1X", StringComparison.OrdinalIgnoreCase);
         var isWpa3 = text.Contains("WPA3", StringComparison.OrdinalIgnoreCase);
         var isWpa = text.Contains("WPA", StringComparison.OrdinalIgnoreCase);
 
