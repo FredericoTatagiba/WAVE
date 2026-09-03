@@ -1,23 +1,28 @@
-<Window x:Class="WAVE.App.Views.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ctrl="clr-namespace:WAVE.App.Controls"
+        x:Class="WAVE.App.Views.MainWindow"
         Title="WAVE — Homologação de Wi-Fi"
         Height="800" Width="1200" MinHeight="480" MinWidth="480"
         Background="{StaticResource BrushBackground}"
-        Foreground="{StaticResource BrushText}"
-        FontFamily="Segoe UI">
+        Foreground="{StaticResource BrushText}">
+
+    <Window.Styles>
+        <!-- WPF used a DataTrigger inside the item's TextBlock.Style. Avalonia has no
+             triggers: the result colour is a class the row toggles from its binding. -->
+        <Style Selector="TextBlock.result">
+            <Setter Property="Foreground" Value="{StaticResource BrushFailed}" />
+        </Style>
+        <Style Selector="TextBlock.result.succeeded">
+            <Setter Property="Foreground" Value="{StaticResource BrushRunning}" />
+        </Style>
+    </Window.Styles>
 
     <DockPanel LastChildFill="True">
 
         <!-- Top bar -->
         <Border DockPanel.Dock="Top" Background="{StaticResource BrushSurface}" Padding="16,10">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+            <Grid ColumnDefinitions="Auto,*,Auto">
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="WAVE" FontSize="22" FontWeight="Bold" Foreground="{StaticResource BrushAccent}" />
@@ -29,20 +34,20 @@
                     <TextBlock Text="{Binding CurrentUserText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0" />
 
                     <Button Content="Usuários" Click="OnUsersClick"
-                            Visibility="{Binding IsAdministrator, Converter={StaticResource BoolToVis}}"
-                            Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,0" />
+                            IsVisible="{Binding IsAdministrator}"
+                            Classes="action" Margin="0,0,8,0" />
 
                     <Button Content="Parar teste" Command="{Binding StopCommand}"
-                            Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,0" />
+                            Classes="action" Margin="0,0,8,0" />
 
-                    <Button Content="Sair" Click="OnLogoutClick" Style="{StaticResource ActionButtonStyle}" />
+                    <Button Content="Sair" Click="OnLogoutClick" Classes="action" />
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- Status bar -->
         <Border DockPanel.Dock="Bottom" Background="{StaticResource BrushSurface}" Padding="16,8"
-                Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}">
+                IsVisible="{Binding HasStatus}">
             <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource BrushAccent}" TextWrapping="Wrap" />
         </Border>
 
@@ -53,14 +58,14 @@
                 <Border Background="{StaticResource BrushSurface}" CornerRadius="10" Padding="12" Margin="6">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" LastChildFill="False" Margin="0,0,0,4">
-                            <TextBlock Text="Redes" Style="{StaticResource HeadingText}" VerticalAlignment="Center" />
+                            <TextBlock Text="Redes" Classes="heading" VerticalAlignment="Center" />
                             <Button DockPanel.Dock="Right" Content="Buscar redes"
-                                    Command="{Binding ScanCommand}" Style="{StaticResource ActionButtonStyle}" />
+                                    Command="{Binding ScanCommand}" Classes="action" />
                         </DockPanel>
 
                         <!-- Network registration: its own component, visible only to the Administrator (RBAC) -->
                         <ctrl:AddNetworkPanel DockPanel.Dock="Bottom"
-                                              Visibility="{Binding IsAdministrator, Converter={StaticResource BoolToVis}}" />
+                                              IsVisible="{Binding IsAdministrator}" />
 
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding Networks}">
@@ -82,36 +87,31 @@
 
             <ctrl:ResponsiveSplitView.SecondaryContent>
                 <Border Background="{StaticResource BrushSurface}" CornerRadius="10" Padding="12" Margin="6">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="2*" />
-                            <RowDefinition Height="3*" />
-                        </Grid.RowDefinitions>
+                    <Grid RowDefinitions="Auto,2*,3*">
 
                         <!-- Indicators -->
                         <StackPanel Grid.Row="0" Orientation="Horizontal">
                             <Border Background="#FF0E1621" CornerRadius="8" Padding="14,10" Margin="0,0,8,10">
                                 <StackPanel>
-                                    <TextBlock Text="Última latência" Style="{StaticResource MutedText}" />
+                                    <TextBlock Text="Última latência" Classes="muted" />
                                     <TextBlock Text="{Binding Telemetry.LastLatencyMs, StringFormat={}{0} ms}" FontSize="20" FontWeight="Bold" />
                                 </StackPanel>
                             </Border>
                             <Border Background="#FF0E1621" CornerRadius="8" Padding="14,10" Margin="0,0,8,10">
                                 <StackPanel>
-                                    <TextBlock Text="Latência média" Style="{StaticResource MutedText}" />
+                                    <TextBlock Text="Latência média" Classes="muted" />
                                     <TextBlock Text="{Binding Telemetry.AverageLatencyMs, StringFormat={}{0} ms}" FontSize="20" FontWeight="Bold" />
                                 </StackPanel>
                             </Border>
                             <Border Background="#FF0E1621" CornerRadius="8" Padding="14,10" Margin="0,0,8,10">
                                 <StackPanel>
-                                    <TextBlock Text="Perda de pacotes" Style="{StaticResource MutedText}" />
+                                    <TextBlock Text="Perda de pacotes" Classes="muted" />
                                     <TextBlock Text="{Binding Telemetry.PacketLossPercent, StringFormat={}{0}%}" FontSize="20" FontWeight="Bold" />
                                 </StackPanel>
                             </Border>
                             <Border Background="#FF0E1621" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
                                 <StackPanel>
-                                    <TextBlock Text="Pacotes (recv/env)" Style="{StaticResource MutedText}" />
+                                    <TextBlock Text="Pacotes (recv/env)" Classes="muted" />
                                     <TextBlock FontSize="20" FontWeight="Bold">
                                         <Run Text="{Binding Telemetry.Received, Mode=OneWay}" />
                                         <Run Text="/" />
@@ -128,14 +128,14 @@
                                                   StackedPrimaryLength="*" StackedSecondaryLength="Auto">
                             <ctrl:ResponsiveSplitView.PrimaryContent>
                                 <DockPanel Margin="3">
-                                    <TextBlock DockPanel.Dock="Top" Text="Latência de ping (ms)" Style="{StaticResource HeadingText}" />
+                                    <TextBlock DockPanel.Dock="Top" Text="Latência de ping (ms)" Classes="heading" />
                                     <ctrl:PingLatencyChart ItemsSource="{Binding Telemetry.Latencies}" />
                                 </DockPanel>
                             </ctrl:ResponsiveSplitView.PrimaryContent>
 
                             <ctrl:ResponsiveSplitView.SecondaryContent>
                                 <DockPanel Margin="3">
-                                    <TextBlock DockPanel.Dock="Top" Text="Velocidade Wi-Fi" Style="{StaticResource HeadingText}" />
+                                    <TextBlock DockPanel.Dock="Top" Text="Velocidade Wi-Fi" Classes="heading" />
                                     <ctrl:SpeedGauge DownloadMbps="{Binding Telemetry.DownloadMbps}"
                                                      UploadMbps="{Binding Telemetry.UploadMbps}"
                                                      PhaseText="{Binding Telemetry.SpeedPhaseText}" />
@@ -145,28 +145,30 @@
 
                         <!-- History -->
                         <DockPanel Grid.Row="2">
-                            <TextBlock DockPanel.Dock="Top" Text="Histórico de execuções" Style="{StaticResource HeadingText}" />
-                            <TextBlock DockPanel.Dock="Top" Style="{StaticResource MutedText}" Margin="0,0,0,8"
+                            <TextBlock DockPanel.Dock="Top" Text="Histórico de execuções" Classes="heading" />
+                            <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"
                                        Text="Vazão (download/upload) e estabilidade de streaming são medidas no app e registradas abaixo." />
 
                             <!-- Filter bar + export (wraps on narrow widths) -->
                             <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                                 <StackPanel Orientation="Horizontal" Margin="0,0,10,4" VerticalAlignment="Center">
-                                    <TextBlock Text="De:" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,4,0" />
-                                    <DatePicker SelectedDate="{Binding FilterFrom}" Width="120" />
+                                    <TextBlock Text="De:" Classes="muted" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                    <!-- CalendarDatePicker, not DatePicker: its SelectedDate is DateTime?,
+                                         matching the ViewModel. Avalonia's DatePicker uses DateTimeOffset?. -->
+                                    <CalendarDatePicker SelectedDate="{Binding FilterFrom}" Width="140" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,10,4" VerticalAlignment="Center">
-                                    <TextBlock Text="Até:" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,4,0" />
-                                    <DatePicker SelectedDate="{Binding FilterTo}" Width="120" />
+                                    <TextBlock Text="Até:" Classes="muted" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                    <CalendarDatePicker SelectedDate="{Binding FilterTo}" Width="140" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,10,4" VerticalAlignment="Center">
-                                    <TextBlock Text="Rede:" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,4,0" />
-                                    <TextBox Text="{Binding FilterSsid, UpdateSourceTrigger=PropertyChanged}" Width="150" VerticalContentAlignment="Center" />
+                                    <TextBlock Text="Rede:" Classes="muted" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                    <TextBox Text="{Binding FilterSsid}" Width="150" VerticalContentAlignment="Center" />
                                 </StackPanel>
                                 <Button Content="Limpar filtro" Command="{Binding ClearFilterCommand}"
-                                        Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,4" />
+                                        Classes="action" Margin="0,0,8,4" />
                                 <Button Content="Exportar" Command="{Binding ExportCommand}"
-                                        Style="{StaticResource ActionButtonStyle}" Margin="0,0,0,4" />
+                                        Classes="action" Margin="0,0,0,4" />
                             </WrapPanel>
 
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -174,32 +176,19 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Border Background="#FF0E1621" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
+                                                <Grid ColumnDefinitions="*,Auto">
                                                     <StackPanel Grid.Column="0">
                                                         <TextBlock Text="{Binding Ssid}" FontWeight="SemiBold" />
-                                                        <TextBlock Text="{Binding StartedAt}" Style="{StaticResource MutedText}" />
+                                                        <TextBlock Text="{Binding StartedAt}" Classes="muted" />
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="1" HorizontalAlignment="Right">
-                                                        <TextBlock Text="{Binding ResultText}" HorizontalAlignment="Right">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Setter Property="Foreground" Value="{StaticResource BrushFailed}" />
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding Succeeded}" Value="True">
-                                                                            <Setter Property="Foreground" Value="{StaticResource BrushRunning}" />
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                        <TextBlock Text="{Binding AverageLatencyText}" Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
-                                                        <TextBlock Text="{Binding PacketLossText}" Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
-                                                        <TextBlock Text="{Binding SpeedText}" Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
-                                                        <TextBlock Text="{Binding StreamingText}" Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
+                                                        <TextBlock Text="{Binding ResultText}" HorizontalAlignment="Right"
+                                                                   Classes="result"
+                                                                   Classes.succeeded="{Binding Succeeded}" />
+                                                        <TextBlock Text="{Binding AverageLatencyText}" Classes="muted" HorizontalAlignment="Right" />
+                                                        <TextBlock Text="{Binding PacketLossText}" Classes="muted" HorizontalAlignment="Right" />
+                                                        <TextBlock Text="{Binding SpeedText}" Classes="muted" HorizontalAlignment="Right" />
+                                                        <TextBlock Text="{Binding StreamingText}" Classes="muted" HorizontalAlignment="Right" />
                                                     </StackPanel>
                                                 </Grid>
                                             </Border>

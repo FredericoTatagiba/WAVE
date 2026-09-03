@@ -1,4 +1,5 @@
-using System.Windows;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 using WAVE.Domain.Networking;
 
 namespace WAVE.App.Views;
@@ -13,19 +14,20 @@ public partial class CredentialPromptWindow : Window
         InitializeComponent();
         _profile = profile;
         TitleText.Text = profile.DisplayName;
-        EnterprisePanel.Visibility = profile.IsEnterprise ? Visibility.Visible : Visibility.Collapsed;
+        EnterprisePanel.IsVisible = profile.IsEnterprise;
         Loaded += (_, _) => PassphraseInput.Focus();
     }
 
+    /// <summary>The captured credential, or null while the user has not confirmed.</summary>
     public WifiSecret? Secret { get; private set; }
 
-    private void OnSubmit(object sender, RoutedEventArgs e)
+    private void OnSubmit(object? sender, RoutedEventArgs e)
     {
-        var passphrase = PassphraseInput.Password;
+        var passphrase = PassphraseInput.Text;
         if (string.IsNullOrWhiteSpace(passphrase))
         {
             ErrorText.Text = "Informe a senha da rede.";
-            ErrorText.Visibility = Visibility.Visible;
+            ErrorText.IsVisible = true;
             return;
         }
 
@@ -37,7 +39,6 @@ public partial class CredentialPromptWindow : Window
             : null;
 
         Secret = new WifiSecret(passphrase, username, domain);
-        DialogResult = true;
         Close();
     }
 }

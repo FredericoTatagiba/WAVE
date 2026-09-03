@@ -1,18 +1,12 @@
-<Window x:Class="WAVE.App.Views.UserManagementWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="WAVE.App.Views.UserManagementWindow"
         Title="WAVE — Usuários" Height="560" Width="640"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource BrushBackground}" Foreground="{StaticResource BrushText}"
-        FontFamily="Segoe UI">
-    <Grid Margin="18">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        Background="{StaticResource BrushBackground}" Foreground="{StaticResource BrushText}">
+    <Grid Margin="18" RowDefinitions="Auto,*,Auto">
 
-        <TextBlock Grid.Row="0" Text="Usuários" Style="{StaticResource HeadingText}" FontSize="20" />
+        <TextBlock Grid.Row="0" Text="Usuários" Classes="heading" FontSize="20" />
 
         <!-- User list -->
         <Border Grid.Row="1" Background="{StaticResource BrushSurface}" CornerRadius="10" Padding="10" Margin="0,4,0,12">
@@ -21,14 +15,10 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Background="#FF0E1621" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
+                                <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
-                                        <TextBlock Style="{StaticResource MutedText}">
+                                        <TextBlock Classes="muted">
                                             <Run Text="{Binding Username, Mode=OneWay}" />
                                             <Run Text=" · " />
                                             <Run Text="{Binding RoleText, Mode=OneWay}" />
@@ -36,11 +26,11 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                                         <Button Content="{Binding ToggleRoleText}" Command="{Binding ToggleRoleCommand}"
-                                                Style="{StaticResource ActionButtonStyle}" Margin="0,0,6,0" />
+                                                Classes="action" Margin="0,0,6,0" />
                                         <Button Content="Redefinir senha" Click="OnResetClick"
-                                                Style="{StaticResource ActionButtonStyle}" Margin="0,0,6,0" />
+                                                Classes="action" Margin="0,0,6,0" />
                                         <Button Content="Excluir" Command="{Binding DeleteCommand}"
-                                                Style="{StaticResource ActionButtonStyle}" />
+                                                Classes="action" />
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -53,16 +43,16 @@
         <!-- Form: add user / reset password -->
         <Border Grid.Row="2" Background="{StaticResource BrushSurface}" CornerRadius="10" Padding="12">
             <StackPanel>
-                <TextBlock Text="Adicionar usuário" Style="{StaticResource HeadingText}" />
+                <TextBlock Text="Adicionar usuário" Classes="heading" />
                 <WrapPanel>
-                    <TextBox x:Name="NewUsername" Width="130" Height="30" Margin="0,0,8,8" ToolTip="Login" />
-                    <TextBox x:Name="NewDisplayName" Width="150" Height="30" Margin="0,0,8,8" ToolTip="Nome de exibição" />
+                    <TextBox x:Name="NewUsername" Width="130" Height="30" Margin="0,0,8,8" ToolTip.Tip="Login" />
+                    <TextBox x:Name="NewDisplayName" Width="150" Height="30" Margin="0,0,8,8" ToolTip.Tip="Nome de exibição" />
                     <ComboBox x:Name="NewRole" Width="140" Height="30" Margin="0,0,8,8" ItemsSource="{Binding Roles}" />
-                    <PasswordBox x:Name="PasswordInput" Width="140" Height="30" Margin="0,0,8,8"
-                                 ToolTip="Senha (novo usuário ou redefinição)" />
-                    <Button Content="Adicionar" Click="OnAddClick" Style="{StaticResource ActionButtonStyle}" />
+                    <TextBox x:Name="PasswordInput" PasswordChar="●" Width="140" Height="30" Margin="0,0,8,8"
+                             ToolTip.Tip="Senha (novo usuário ou redefinição)" />
+                    <Button Content="Adicionar" Click="OnAddClick" Classes="action" />
                 </WrapPanel>
-                <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,4,0,0"
+                <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,4,0,0"
                            Text="A mesma senha digitada aqui é usada ao clicar 'Redefinir senha' de um usuário." />
             </StackPanel>
         </Border>

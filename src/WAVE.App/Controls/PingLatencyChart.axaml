@@ -1,6 +1,6 @@
-<UserControl x:Class="WAVE.App.Controls.PingLatencyChart"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="WAVE.App.Controls.PingLatencyChart">
     <Border Background="#FF0E1621" CornerRadius="8" Padding="8">
         <Grid>
             <Canvas x:Name="PlotCanvas" ClipToBounds="True" Background="Transparent" />

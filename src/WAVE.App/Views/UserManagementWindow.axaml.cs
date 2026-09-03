@@ -1,4 +1,6 @@
-using System.Windows;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 using WAVE.App.ViewModels;
 using WAVE.Domain.Security;
 
@@ -17,10 +19,15 @@ public partial class UserManagementWindow : Window
         Loaded += async (_, _) => await _viewModel.InitializeAsync();
     }
 
-    private async void OnAddClick(object sender, RoutedEventArgs e)
+    private async void OnAddClick(object? sender, RoutedEventArgs e)
     {
         var role = NewRole.SelectedItem is UserRole selected ? selected : UserRole.Operator;
-        var added = await _viewModel.AddAsync(NewUsername.Text, NewDisplayName.Text, role, PasswordInput.Password);
+        var added = await _viewModel.AddAsync(
+            NewUsername.Text ?? string.Empty,
+            NewDisplayName.Text ?? string.Empty,
+            role,
+            PasswordInput.Text ?? string.Empty);
+
         if (added)
         {
             NewUsername.Clear();
@@ -29,11 +36,12 @@ public partial class UserManagementWindow : Window
         }
     }
 
-    private async void OnResetClick(object sender, RoutedEventArgs e)
+    private async void OnResetClick(object? sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { DataContext: UserRowViewModel row })
+        // Avalonia's element base type is StyledElement, not FrameworkElement.
+        if (sender is StyledElement { DataContext: UserRowViewModel row })
         {
-            var done = await _viewModel.ResetPasswordAsync(row.Account.Id, PasswordInput.Password);
+            var done = await _viewModel.ResetPasswordAsync(row.Account.Id, PasswordInput.Text ?? string.Empty);
             if (done)
             {
                 PasswordInput.Clear();

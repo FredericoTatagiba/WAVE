@@ -1,9 +1,9 @@
 using System.Collections;
 using System.Collections.Specialized;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Shapes;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
+using Avalonia.Media;
 
 namespace WAVE.App.Controls;
 
@@ -16,11 +16,10 @@ public partial class PingLatencyChart : UserControl
 {
     private const double MinimumScaleMs = 50d;
 
-    public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register(
-        nameof(ItemsSource),
-        typeof(IEnumerable),
-        typeof(PingLatencyChart),
-        new PropertyMetadata(null, OnItemsSourceChanged));
+    private static readonly IBrush LineBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0xC2, 0xFF));
+
+    public static readonly StyledProperty<IEnumerable?> ItemsSourceProperty =
+        AvaloniaProperty.Register<PingLatencyChart, IEnumerable?>(nameof(ItemsSource));
 
     private INotifyCollectionChanged? _observable;
 
@@ -32,27 +31,36 @@ public partial class PingLatencyChart : UserControl
 
     public IEnumerable? ItemsSource
     {
-        get => (IEnumerable?)GetValue(ItemsSourceProperty);
+        get => GetValue(ItemsSourceProperty);
         set => SetValue(ItemsSourceProperty, value);
     }
 
-    private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    /// <summary>
+    /// Resubscribes to the new collection. Replaces WPF's PropertyMetadata callback;
+    /// Avalonia routes styled-property changes through this single override.
+    /// </summary>
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        var chart = (PingLatencyChart)d;
+        base.OnPropertyChanged(change);
 
-        if (chart._observable is not null)
+        if (change.Property != ItemsSourceProperty)
         {
-            chart._observable.CollectionChanged -= chart.OnCollectionChanged;
+            return;
         }
 
-        chart._observable = e.NewValue as INotifyCollectionChanged;
-
-        if (chart._observable is not null)
+        if (_observable is not null)
         {
-            chart._observable.CollectionChanged += chart.OnCollectionChanged;
+            _observable.CollectionChanged -= OnCollectionChanged;
         }
 
-        chart.Redraw();
+        _observable = change.NewValue as INotifyCollectionChanged;
+
+        if (_observable is not null)
+        {
+            _observable.CollectionChanged += OnCollectionChanged;
+        }
+
+        Redraw();
     }
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => Redraw();
@@ -62,10 +70,11 @@ public partial class PingLatencyChart : UserControl
         PlotCanvas.Children.Clear();
 
         var values = ReadValues();
-        EmptyLabel.Visibility = values.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        EmptyLabel.IsVisible = values.Count == 0;
 
-        var width = PlotCanvas.ActualWidth;
-        var height = PlotCanvas.ActualHeight;
+        // Avalonia exposes the rendered size as Bounds; there is no ActualWidth/Height.
+        var width = PlotCanvas.Bounds.Width;
+        var height = PlotCanvas.Bounds.Height;
         if (values.Count < 2 || width <= 0d || height <= 0d)
         {
             return;
@@ -74,7 +83,7 @@ public partial class PingLatencyChart : UserControl
         var maxValue = Math.Max(Max(values), MinimumScaleMs);
         var stepX = width / (values.Count - 1);
 
-        var points = new PointCollection(values.Count);
+        var points = new List<Point>(values.Count);
         for (var i = 0; i < values.Count; i++)
         {
             var x = i * stepX;
@@ -84,7 +93,7 @@ public partial class PingLatencyChart : UserControl
 
         PlotCanvas.Children.Add(new Polyline
         {
-            Stroke = new SolidColorBrush(Color.FromRgb(0x4C, 0xC2, 0xFF)),
+            Stroke = LineBrush,
             StrokeThickness = 2,
             Points = points
         });

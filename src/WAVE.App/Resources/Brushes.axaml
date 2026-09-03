@@ -1,0 +1,21 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:conv="clr-namespace:WAVE.App.Converters">
+
+    <!-- Converters. BoolToVis and NonEmptyToVis are gone: Avalonia binds IsVisible to a
+         bool directly, and ships StringConverters.IsNotNullOrEmpty for the other. -->
+    <conv:StateToBrushConverter x:Key="StateToBrush" />
+
+    <!-- Palette / state feedback (spec: gray, yellow, green, red) -->
+    <SolidColorBrush x:Key="BrushIdle" Color="#FFB0BEC5" />
+    <SolidColorBrush x:Key="BrushConnecting" Color="#FFFFC107" />
+    <SolidColorBrush x:Key="BrushRunning" Color="#FF43A047" />
+    <SolidColorBrush x:Key="BrushFailed" Color="#FFE53935" />
+
+    <SolidColorBrush x:Key="BrushBackground" Color="#FF0A0F14" />
+    <SolidColorBrush x:Key="BrushSurface" Color="#FF13202B" />
+    <SolidColorBrush x:Key="BrushText" Color="#FFECEFF1" />
+    <SolidColorBrush x:Key="BrushMuted" Color="#FF8899A6" />
+    <SolidColorBrush x:Key="BrushAccent" Color="#FF4CC2FF" />
+
+</ResourceDictionary>

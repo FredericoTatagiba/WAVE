@@ -1,0 +1,97 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        WPF's keyed styles became classes: Style="{StaticResource TouchButtonStyle}"
+        is now Classes="touch". Avalonia has no Trigger element — the IsEnabled and
+        IsMouseOver triggers became the :disabled and :pointerover pseudoclasses, applied
+        through a selector that reaches into the template with /template/.
+    -->
+
+    <!-- Network button: touch target >= 60x60, rounded corners, color by state -->
+    <Style Selector="Button.touch">
+        <Setter Property="MinWidth" Value="60" />
+        <Setter Property="MinHeight" Value="60" />
+        <Setter Property="Foreground" Value="#FF102027" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Root"
+                        CornerRadius="10"
+                        Background="{TemplateBinding Background}"
+                        Padding="{TemplateBinding Padding}">
+                    <!-- Avalonia does not bind the presenter's Content implicitly; without
+                         this the button renders empty. -->
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.touch:disabled /template/ Border#Root">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+
+    <Style Selector="Button.touch:pointerover /template/ Border#Root">
+        <Setter Property="Opacity" Value="0.9" />
+    </Style>
+
+    <!-- Top bar action button -->
+    <Style Selector="Button.action">
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="Foreground" Value="{StaticResource BrushText}" />
+        <Setter Property="Background" Value="{StaticResource BrushSurface}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Root"
+                        CornerRadius="8"
+                        Background="{TemplateBinding Background}"
+                        Padding="{TemplateBinding Padding}"
+                        BorderBrush="{StaticResource BrushAccent}"
+                        BorderThickness="1">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.action:disabled /template/ Border#Root">
+        <Setter Property="Opacity" Value="0.4" />
+    </Style>
+
+    <Style Selector="Button.action:pointerover /template/ Border#Root">
+        <Setter Property="Opacity" Value="0.85" />
+    </Style>
+
+    <Style Selector="TextBlock.heading">
+        <Setter Property="Foreground" Value="{StaticResource BrushText}" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <Style Selector="TextBlock.muted">
+        <Setter Property="Foreground" Value="{StaticResource BrushMuted}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <!-- Form field label: associated with the input via Target (accessibility
+         and Alt mnemonics). Identifies what to fill in each field. -->
+    <Style Selector="Label.field">
+        <Setter Property="Foreground" Value="{StaticResource BrushMuted}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+
+</Styles>

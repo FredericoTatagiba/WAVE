@@ -1,5 +1,5 @@
-using System.Windows;
-using System.Windows.Controls;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 using WAVE.App.ViewModels;
 using WAVE.Domain.Networking;
 
@@ -18,11 +18,11 @@ public partial class AddNetworkPanel : UserControl
         Loaded += OnLoaded;
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private void OnLoaded(object? sender, RoutedEventArgs e)
     {
         // Starts at "Open" (index 0) so the conditional fields have a consistent state
         // from the start, instead of the combo appearing empty.
-        if (SecurityBox.SelectedItem is null && SecurityBox.Items.Count > 0)
+        if (SecurityBox.SelectedItem is null && SecurityBox.ItemCount > 0)
         {
             SecurityBox.SelectedItem = SecurityType.Open;
         }
@@ -35,15 +35,15 @@ public partial class AddNetworkPanel : UserControl
     /// Shows only the fields the chosen security type requires: password for protected
     /// networks; username/domain only for Enterprise (802.1X) networks.
     /// </summary>
-    private void OnSecurityChanged(object sender, SelectionChangedEventArgs e)
+    private void OnSecurityChanged(object? sender, SelectionChangedEventArgs e)
     {
         var security = SelectedSecurity;
         var requiresCredential = security.RequiresCredential();
         var isEnterprise = security.IsEnterprise();
 
-        PasswordField.Visibility = requiresCredential ? Visibility.Visible : Visibility.Collapsed;
-        UsernameField.Visibility = isEnterprise ? Visibility.Visible : Visibility.Collapsed;
-        DomainField.Visibility = isEnterprise ? Visibility.Visible : Visibility.Collapsed;
+        PasswordField.IsVisible = requiresCredential;
+        UsernameField.IsVisible = isEnterprise;
+        DomainField.IsVisible = isEnterprise;
 
         if (!requiresCredential)
         {
@@ -57,7 +57,7 @@ public partial class AddNetworkPanel : UserControl
         }
     }
 
-    private async void OnAddClick(object sender, RoutedEventArgs e)
+    private async void OnAddClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel viewModel)
         {
@@ -65,7 +65,13 @@ public partial class AddNetworkPanel : UserControl
         }
 
         await viewModel.AddNetworkAsync(
-            DisplayNameBox.Text, SsidBox.Text, SelectedSecurity, PasswordInput.Password, UsernameBox.Text, DomainBox.Text);
+            DisplayNameBox.Text ?? string.Empty,
+            SsidBox.Text ?? string.Empty,
+            SelectedSecurity,
+            PasswordInput.Text ?? string.Empty,
+            UsernameBox.Text,
+            DomainBox.Text);
+
         PasswordInput.Clear();
         UsernameBox.Clear();
         DomainBox.Clear();

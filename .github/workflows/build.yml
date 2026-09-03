@@ -1,0 +1,26 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        # The whole point of this workflow: the Linux build cannot silently rot.
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - run: dotnet build WAVE.sln -c Release
+
+      - run: dotnet test tests/WAVE.UnitTests/WAVE.UnitTests.csproj -c Release --no-build

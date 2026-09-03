@@ -1,6 +1,7 @@
 using System.Globalization;
-using System.Windows.Data;
-using System.Windows.Media;
+using Avalonia;
+using Avalonia.Data.Converters;
+using Avalonia.Media;
 using WAVE.Domain.Testing;
 
 namespace WAVE.App.Converters;
@@ -20,7 +21,9 @@ public sealed class StateToBrushConverter : IValueConverter
             }
             : "BrushIdle";
 
-        return System.Windows.Application.Current?.TryFindResource(resourceKey) as Brush ?? Brushes.Gray;
+        return Avalonia.Application.Current?.TryGetResource(resourceKey, null, out var brush) == true
+            ? brush as IBrush ?? Brushes.Gray
+            : Brushes.Gray;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>

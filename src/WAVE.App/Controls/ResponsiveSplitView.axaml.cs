@@ -1,5 +1,5 @@
-using System.Windows;
-using System.Windows.Controls;
+using Avalonia;
+using Avalonia.Controls;
 
 namespace WAVE.App.Controls;
 
@@ -17,36 +17,35 @@ namespace WAVE.App.Controls;
 /// </summary>
 public partial class ResponsiveSplitView : UserControl
 {
-    public static readonly DependencyProperty PrimaryContentProperty = DependencyProperty.Register(
-        nameof(PrimaryContent), typeof(object), typeof(ResponsiveSplitView), new PropertyMetadata(null));
+    public static readonly StyledProperty<object?> PrimaryContentProperty =
+        AvaloniaProperty.Register<ResponsiveSplitView, object?>(nameof(PrimaryContent));
 
-    public static readonly DependencyProperty SecondaryContentProperty = DependencyProperty.Register(
-        nameof(SecondaryContent), typeof(object), typeof(ResponsiveSplitView), new PropertyMetadata(null));
+    public static readonly StyledProperty<object?> SecondaryContentProperty =
+        AvaloniaProperty.Register<ResponsiveSplitView, object?>(nameof(SecondaryContent));
 
-    /// <summary>When &gt; 0, stacks once <see cref="UserControl.ActualWidth"/> is below this value; otherwise uses orientation.</summary>
-    public static readonly DependencyProperty StackBelowWidthProperty = DependencyProperty.Register(
-        nameof(StackBelowWidth), typeof(double), typeof(ResponsiveSplitView),
-        new PropertyMetadata(0d, OnLayoutInputChanged));
+    /// <summary>When &gt; 0, stacks once the rendered width is below this value; otherwise uses orientation.</summary>
+    public static readonly StyledProperty<double> StackBelowWidthProperty =
+        AvaloniaProperty.Register<ResponsiveSplitView, double>(nameof(StackBelowWidth));
 
     /// <summary>Primary length when side by side (column). Default 1*.</summary>
-    public static readonly DependencyProperty PrimaryLengthProperty = DependencyProperty.Register(
-        nameof(PrimaryLength), typeof(GridLength), typeof(ResponsiveSplitView),
-        new PropertyMetadata(new GridLength(1, GridUnitType.Star), OnLayoutInputChanged));
+    public static readonly StyledProperty<GridLength> PrimaryLengthProperty =
+        AvaloniaProperty.Register<ResponsiveSplitView, GridLength>(
+            nameof(PrimaryLength), new GridLength(1, GridUnitType.Star));
 
     /// <summary>Secondary length when side by side (column). Default 2*.</summary>
-    public static readonly DependencyProperty SecondaryLengthProperty = DependencyProperty.Register(
-        nameof(SecondaryLength), typeof(GridLength), typeof(ResponsiveSplitView),
-        new PropertyMetadata(new GridLength(2, GridUnitType.Star), OnLayoutInputChanged));
+    public static readonly StyledProperty<GridLength> SecondaryLengthProperty =
+        AvaloniaProperty.Register<ResponsiveSplitView, GridLength>(
+            nameof(SecondaryLength), new GridLength(2, GridUnitType.Star));
 
     /// <summary>Primary length when stacked (row). Default 1*.</summary>
-    public static readonly DependencyProperty StackedPrimaryLengthProperty = DependencyProperty.Register(
-        nameof(StackedPrimaryLength), typeof(GridLength), typeof(ResponsiveSplitView),
-        new PropertyMetadata(new GridLength(1, GridUnitType.Star), OnLayoutInputChanged));
+    public static readonly StyledProperty<GridLength> StackedPrimaryLengthProperty =
+        AvaloniaProperty.Register<ResponsiveSplitView, GridLength>(
+            nameof(StackedPrimaryLength), new GridLength(1, GridUnitType.Star));
 
     /// <summary>Secondary length when stacked (row). Default 1*.</summary>
-    public static readonly DependencyProperty StackedSecondaryLengthProperty = DependencyProperty.Register(
-        nameof(StackedSecondaryLength), typeof(GridLength), typeof(ResponsiveSplitView),
-        new PropertyMetadata(new GridLength(1, GridUnitType.Star), OnLayoutInputChanged));
+    public static readonly StyledProperty<GridLength> StackedSecondaryLengthProperty =
+        AvaloniaProperty.Register<ResponsiveSplitView, GridLength>(
+            nameof(StackedSecondaryLength), new GridLength(1, GridUnitType.Star));
 
     public ResponsiveSplitView()
     {
@@ -69,42 +68,58 @@ public partial class ResponsiveSplitView : UserControl
 
     public double StackBelowWidth
     {
-        get => (double)GetValue(StackBelowWidthProperty);
+        get => GetValue(StackBelowWidthProperty);
         set => SetValue(StackBelowWidthProperty, value);
     }
 
     public GridLength PrimaryLength
     {
-        get => (GridLength)GetValue(PrimaryLengthProperty);
+        get => GetValue(PrimaryLengthProperty);
         set => SetValue(PrimaryLengthProperty, value);
     }
 
     public GridLength SecondaryLength
     {
-        get => (GridLength)GetValue(SecondaryLengthProperty);
+        get => GetValue(SecondaryLengthProperty);
         set => SetValue(SecondaryLengthProperty, value);
     }
 
     public GridLength StackedPrimaryLength
     {
-        get => (GridLength)GetValue(StackedPrimaryLengthProperty);
+        get => GetValue(StackedPrimaryLengthProperty);
         set => SetValue(StackedPrimaryLengthProperty, value);
     }
 
     public GridLength StackedSecondaryLength
     {
-        get => (GridLength)GetValue(StackedSecondaryLengthProperty);
+        get => GetValue(StackedSecondaryLengthProperty);
         set => SetValue(StackedSecondaryLengthProperty, value);
     }
 
-    private static void OnLayoutInputChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
-        ((ResponsiveSplitView)d).ApplyLayout();
+    /// <summary>
+    /// Re-runs the layout when any of the sizing inputs change. Replaces the five
+    /// PropertyMetadata callbacks WPF needed.
+    /// </summary>
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == StackBelowWidthProperty ||
+            change.Property == PrimaryLengthProperty ||
+            change.Property == SecondaryLengthProperty ||
+            change.Property == StackedPrimaryLengthProperty ||
+            change.Property == StackedSecondaryLengthProperty)
+        {
+            ApplyLayout();
+        }
+    }
 
     private void ApplyLayout()
     {
+        // Avalonia exposes the rendered size as Bounds; there is no ActualWidth/Height.
         var stacked = StackBelowWidth > 0
-            ? ActualWidth < StackBelowWidth
-            : ActualWidth < ActualHeight;
+            ? Bounds.Width < StackBelowWidth
+            : Bounds.Width < Bounds.Height;
 
         RootGrid.RowDefinitions.Clear();
         RootGrid.ColumnDefinitions.Clear();

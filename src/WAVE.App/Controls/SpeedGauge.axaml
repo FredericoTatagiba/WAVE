@@ -1,28 +1,22 @@
-<UserControl x:Class="WAVE.App.Controls.SpeedGauge"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="WAVE.App.Controls.SpeedGauge"
              x:Name="Root">
     <Border Background="#FF0E1621" CornerRadius="8" Padding="12">
-        <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+        <Grid VerticalAlignment="Center" HorizontalAlignment="Center"
+              RowDefinitions="Auto,Auto,Auto,Auto,Auto">
 
             <!-- Current phase (only visible while measuring) -->
             <TextBlock Grid.Row="0"
-                       Text="{Binding PhaseText, ElementName=Root}"
-                       Visibility="{Binding PhaseText, ElementName=Root, Converter={StaticResource NonEmptyToVis}}"
+                       Text="{Binding #Root.PhaseText}"
+                       IsVisible="{Binding #Root.PhaseText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                        Foreground="{StaticResource BrushAccent}"
                        FontSize="13" FontWeight="SemiBold"
                        HorizontalAlignment="Center" Margin="0,0,0,4" />
 
             <!-- Hero number: live download speed -->
             <TextBlock Grid.Row="1"
-                       Text="{Binding DownloadMbps, ElementName=Root, StringFormat={}{0:0.#}}"
+                       Text="{Binding #Root.DownloadMbps, StringFormat={}{0:0.#}}"
                        Foreground="{StaticResource BrushText}"
                        FontSize="52" FontWeight="Bold"
                        HorizontalAlignment="Center" />
@@ -39,7 +33,7 @@
             <TextBlock Grid.Row="4" HorizontalAlignment="Center" Margin="0,10,0,0"
                        Foreground="{StaticResource BrushMuted}" FontSize="14">
                 <Run Text="↑" />
-                <Run Text="{Binding UploadMbps, ElementName=Root, Mode=OneWay, StringFormat={}{0:0.#}}"
+                <Run Text="{Binding #Root.UploadMbps, Mode=OneWay, StringFormat={}{0:0.#}}"
                      Foreground="{StaticResource BrushText}" FontWeight="SemiBold" />
                 <Run Text="Mbps upload" />
             </TextBlock>

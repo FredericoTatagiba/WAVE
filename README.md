@@ -80,26 +80,40 @@ Back end and front end are separated; the front end is componentized (network bu
 
 ## Requirements
 
-**Windows 10 or 11** (x64 or ARM64). The `.exe` is self-contained — no .NET install needed on the machine that runs it.
+Runs on **Windows 10/11** (x64 or ARM64) and on **Linux** (x64). The build is self-contained — no .NET install needed on the machine that runs it.
+
+On Linux it additionally needs:
+
+- **NetworkManager** (`nmcli`) — WAVE drives Wi-Fi through it, the way it uses `netsh` on Windows.
+- `libX11`, `libSM`, `libICE`, `libfontconfig1` for the UI toolkit.
+- Permission to change network settings. Changing Wi-Fi settings is polkit-protected: on a desktop session you are prompted for a password each time, and with no polkit agent (over SSH, on a kiosk) the operation fails outright. To grant it once:
+
+  ```bash
+  sudo cp packaging/49-wave-nmcli.rules /etc/polkit-1/rules.d/
+  sudo usermod -aG netdev "$USER"   # log out and back in
+  ```
 
 ## The executable
 
-Download the latest **WAVE.exe** from the **[Releases](https://github.com/FredericoTatagiba/WAVE/releases)** page — the single-file, self-contained build is too large to live in the repository. Locally, a build lands at `publish/win-x64/WAVE.exe` (and `publish/win-arm64/WAVE.exe` for ARM devices).
+Download the latest build from the **[Releases](https://github.com/FredericoTatagiba/WAVE/releases)** page — the single-file, self-contained build is too large to live in the repository. Locally, a build lands at `publish/win-x64/WAVE.exe`, `publish/win-arm64/WAVE.exe` or `publish/linux-x64/WAVE`, produced by `publish.ps1` (Windows) or `publish.sh` (Linux).
 
 ## First run
 
-1. Open `WAVE.exe`. The first time, the **Create administrator** screen appears — set the admin login, display name and password (≥8 chars). This account administers the app.
+1. Open WAVE. The first time, the **Create administrator** screen appears — set the admin login, display name and password (≥8 chars). This account administers the app.
 2. You land on the main screen; nearby networks show up automatically (or click **Scan networks**).
 3. Tap an **open** or **already known** network to test — no password needed. For a protected, still-unknown network, an administrator registers the Wi‑Fi password once.
 4. Use **Usuários** (admin) to add technicians as Operators; **Sair** switches user.
 
 ## Where data lives / security
 
-Local data lives in `%LOCALAPPDATA%\WAVE`: users (with PBKDF2 password hashes), network profiles, history, **encrypted** Wi‑Fi credentials and logs. Security summary: login required, RBAC enforced in the application layer, Wi‑Fi credentials under DPAPI, passwords under PBKDF2, input validation and command-line argument sanitization.
+Local data lives in `%LOCALAPPDATA%\WAVE` on Windows and `~/.local/share/WAVE` on Linux: users (with PBKDF2 password hashes), network profiles, history, **encrypted** Wi‑Fi credentials and logs. Security summary: login required, RBAC enforced in the application layer, passwords under PBKDF2, input validation, and network-tool arguments passed as an argument vector (never through a shell).
+
+Wi‑Fi credentials are encrypted at rest with **DPAPI** on Windows and with **AES-GCM** on Linux, keyed by a random 256-bit key in a `0600` file inside the `0700` data directory. The two formats are not interchangeable: a data directory copied between machines, OS accounts or operating systems will not decrypt, and WAVE simply asks for the passphrase again.
 
 ## Known limitations / next steps
 
-- **Enterprise (802.1X)** networks are supported via PEAP-MSCHAPv2 (user/password, optional logon domain); the credentials are applied to the profile through the native WLAN API. Other EAP methods (TLS/certificates) are a next step.
+- **Enterprise (802.1X)** networks are supported via PEAP-MSCHAPv2 (user/password, optional logon domain). On Windows the credentials are applied to the profile through the native WLAN API; on Linux they go straight into the NetworkManager connection. Other EAP methods (TLS/certificates) are a next step.
+- **macOS** is not supported. Scanning without elevation has no stable command-line path since `airport` was removed in Sonoma 14.4, so it would need a native CoreWLAN binding.
 - **Speed and streaming** are now measured in-app via HTTP: download/upload throughput (Mbps) and a sustained-bitrate streaming stability verdict, both recorded in the history alongside ping telemetry (no browser windows). Endpoints and the target bitrate are configurable in `TestRunnerOptions`.
 - Process termination between runs is **scoped by PID**: WAVE only closes the processes it launched itself (today, the visible ping window), tracked by process id — it never kills the technician's own browsers or terminals.
 - The test video URL is neutral and configurable (avoids hardcoding an example).

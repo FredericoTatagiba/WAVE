@@ -6,5 +6,5 @@ namespace WAVE.App.Services;
 public interface ICredentialPrompt
 {
     /// <summary>Returns the entered credential, or null if the user cancels.</summary>
-    WifiSecret? Request(WifiNetworkProfile profile);
+    Task<WifiSecret?> RequestAsync(WifiNetworkProfile profile);
 }

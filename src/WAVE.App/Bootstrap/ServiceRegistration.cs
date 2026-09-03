@@ -96,7 +96,7 @@ public static class ServiceRegistration
     {
         services.AddSingleton<IUserAlerts, MessageBoxUserAlerts>();
         services.AddSingleton<ICredentialPrompt, CredentialPromptService>();
-        services.AddSingleton<IExportFileDialog, SaveFileDialogExportFileDialog>();
+        services.AddSingleton<IExportFileDialog, StorageProviderExportFileDialog>();
         services.AddSingleton<AppNavigator>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();

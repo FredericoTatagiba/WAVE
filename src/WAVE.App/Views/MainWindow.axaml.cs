@@ -1,4 +1,5 @@
-using System.Windows;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
 using WAVE.App.Services;
 using WAVE.App.ViewModels;
 
@@ -19,13 +20,14 @@ public partial class MainWindow : Window
         Loaded += async (_, _) => await _viewModel.InitializeAsync();
     }
 
-    private void OnUsersClick(object sender, RoutedEventArgs e) => _navigator.ShowUserManagement(this);
+    private async void OnUsersClick(object? sender, RoutedEventArgs e) =>
+        await _navigator.ShowUserManagementAsync(this);
 
-    private async void OnLogoutClick(object sender, RoutedEventArgs e)
+    private async void OnLogoutClick(object? sender, RoutedEventArgs e)
     {
         // Closes (hides) the previous page, signs in and reloads the new user's
         // state. If cancelled, the navigator shuts the app down.
-        if (_navigator.Logout(this))
+        if (await _navigator.LogoutAsync(this))
         {
             await _viewModel.InitializeAsync();
         }
