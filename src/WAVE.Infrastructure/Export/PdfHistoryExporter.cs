@@ -11,10 +11,13 @@ namespace WAVE.Infrastructure.Export;
 /// Renders the history as a formatted PDF report (MigraDoc/PDFsharp, MIT-licensed),
 /// driven by <see cref="HistoryReport.Columns"/> and formatted through
 /// <see cref="ReportCellText"/>. Landscape A4 with a title, a generation stamp, a repeating
-/// table header and zebra striping. The GDI build resolves Windows fonts automatically.
+/// table header and zebra striping. Fonts come from <see cref="WaveFontResolver"/>, so the
+/// output is identical on Windows and Linux.
 /// </summary>
 public sealed class PdfHistoryExporter : IHistoryExporter
 {
+    static PdfHistoryExporter() => WaveFontResolver.Register();
+
     private static readonly Color HeaderFill = Color.FromRgb(0x0E, 0x16, 0x21);
     private static readonly Color ZebraFill = Color.FromRgb(0xF2, 0xF4, 0xF6);
 
@@ -48,13 +51,6 @@ public sealed class PdfHistoryExporter : IHistoryExporter
         var columns = HistoryReport.Columns;
 
         var document = new Document();
-        var setup = document.DefaultPageSetup;
-        setup.Orientation = Orientation.Landscape;
-        setup.PageFormat = PageFormat.A4;
-        setup.LeftMargin = Unit.FromCentimeter(1.5);
-        setup.RightMargin = Unit.FromCentimeter(1.5);
-        setup.TopMargin = Unit.FromCentimeter(1.5);
-        setup.BottomMargin = Unit.FromCentimeter(1.5);
 
         // The "Normal" style always exists in a fresh MigraDoc document.
         var normal = document.Styles["Normal"]!;
@@ -62,6 +58,17 @@ public sealed class PdfHistoryExporter : IHistoryExporter
         normal.Font.Size = 8;
 
         var section = document.AddSection();
+
+        // DefaultPageSetup is frozen: it must be cloned onto the section rather than
+        // mutated in place.
+        var setup = document.DefaultPageSetup.Clone();
+        setup.Orientation = Orientation.Landscape;
+        setup.PageFormat = PageFormat.A4;
+        setup.LeftMargin = Unit.FromCentimeter(1.5);
+        setup.RightMargin = Unit.FromCentimeter(1.5);
+        setup.TopMargin = Unit.FromCentimeter(1.5);
+        setup.BottomMargin = Unit.FromCentimeter(1.5);
+        section.PageSetup = setup;
 
         var title = section.AddParagraph("WAVE — Histórico de execuções");
         title.Format.Font.Size = 16;

@@ -1,14 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>WAVE.Infrastructure</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
     <PackageReference Include="ClosedXML" Version="0.102.3" />
-    <PackageReference Include="PDFsharp-MigraDoc-GDI" Version="6.1.1" />
+    <!-- Core build (not -GDI): the GDI flavour is Windows-only. Fonts come from the
+         embedded DejaVu faces via WaveFontResolver, so reports are byte-identical
+         on Windows and Linux. -->
+    <PackageReference Include="PDFsharp-MigraDoc" Version="6.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Export\Fonts\*.ttf" />
   </ItemGroup>
 
   <ItemGroup>

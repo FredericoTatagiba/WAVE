@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using WAVE.Application.Abstractions;
 using WAVE.Domain.Common;
 using WAVE.Domain.Networking;
@@ -10,6 +11,7 @@ namespace WAVE.Infrastructure.Wifi;
 /// needed) and requests the association. The real connectivity confirmation is
 /// done later by DHCP validation.
 /// </summary>
+[SupportedOSPlatform("windows")]
 public sealed class NetshWifiConnector : IWifiConnector
 {
     private readonly IWifiProfileXmlFactory _profileFactory;

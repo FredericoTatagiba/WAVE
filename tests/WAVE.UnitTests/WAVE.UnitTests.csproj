@@ -16,6 +16,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\WAVE.Application\WAVE.Application.csproj" />
     <ProjectReference Include="..\..\src\WAVE.Domain\WAVE.Domain.csproj" />
+    <!-- Only for the exporters, which are the one part of Infrastructure that is pure
+         computation and must render identically on Windows and Linux. -->
+    <ProjectReference Include="..\..\src\WAVE.Infrastructure\WAVE.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
