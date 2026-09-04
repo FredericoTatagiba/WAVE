@@ -45,10 +45,18 @@
             </Grid>
         </Border>
 
-        <!-- Status bar -->
+        <!-- Status bar. Stays on for the whole test, not just when there is a message:
+             it hosts the progress indicator for the connecting phase, which is the one
+             stretch with no telemetry of its own to show. -->
         <Border DockPanel.Dock="Bottom" Background="{StaticResource BrushSurface}" Padding="16,8"
-                IsVisible="{Binding HasStatus}">
-            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource BrushAccent}" TextWrapping="Wrap" />
+                IsVisible="{Binding ShowStatusBar}">
+            <StackPanel Spacing="6">
+                <ProgressBar IsIndeterminate="True" Height="3"
+                             IsVisible="{Binding IsConnecting}"
+                             Foreground="{StaticResource BrushConnecting}"
+                             Background="Transparent" />
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource BrushAccent}" TextWrapping="Wrap" />
+            </StackPanel>
         </Border>
 
         <!-- Responsive content: network list + telemetry -->

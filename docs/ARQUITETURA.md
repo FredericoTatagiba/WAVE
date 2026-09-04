@@ -69,11 +69,11 @@ Atende a regra 4 de `RegrasPrimordiaisDeDesenvolvimento.md`. Gerenciar perfis e 
 | Estados IDLE/CONNECTING/TEST_RUNNING/FAILED + cores | `TestOperationState` + `StateToBrushConverter` + estilos |
 | Bloqueio de reentrância | `WifiTestOrchestrator` rejeita run concorrente; ViewModel desabilita botões |
 | Criar perfil se não existir | `WlanProfileXmlBuilder` + `NetshWifiConnector.EnsureProfileAsync` |
-| Conectar via Windows | `NetshWifiConnector` (`netsh wlan connect`) |
-| Timeout DHCP 15s | `DhcpAddressValidator` + `TestRunnerOptions.DhcpTimeout` |
-| Encerrar só o que o WAVE abriu (janela de ping, por PID) | `SystemProcessTerminator` (escopo por PID) + `VisiblePingTerminal` |
-| Ping contínuo visível | `VisiblePingTerminalLauncher` (`cmd /c start ping -t`) |
-| Latência ao vivo no app | `ContinuousPingService` (.NET `Ping`) → `PingLatencyChart` |
+| Conectar ao SO | `NetshWifiConnector` (`netsh wlan connect`) / `NmcliWifiConnector` (`nmcli connection up`) |
+| Timeout DHCP 15s | `NetworkInterfaceDhcpValidator` + `TestRunnerOptions.DhcpTimeout` |
+| Nenhuma janela externa durante o teste | Nada é lançado: medições rodam no processo do app |
+| Ping contínuo | `ContinuousPingMonitor` (.NET `Ping`) → `PingLatencyChart` |
+| Feedback da fase de conexão | `MainViewModel.IsConnecting` → `ProgressBar` no botão e na barra de status |
 | fast.com anônimo | `FastComSpeedTestLauncher` (Edge `--inprivate`) |
 | YouTube alta qualidade anônimo | `YouTubeStreamingLauncher` (URL configurável) |
 | Layout retrato/paisagem | `Layout/ResponsiveSplitView` |

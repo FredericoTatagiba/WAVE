@@ -12,16 +12,17 @@ Built following SOLID and Clean Code principles, with design patterns and securi
 
 The technician signs in, then sees a screen of network buttons. Tapping a network makes WAVE:
 
-1. Kill leftover browser/terminal instances (avoids memory buildup between tests).
-2. Connect to the network — reusing the profile **Windows already has saved**, or creating one if needed.
-3. Wait for a valid DHCP lease (up to 15s).
-4. Fire three validations and show the results:
-   - **Continuous ping** to `google.com` (visible window + live latency chart in-app);
-   - **Speed test** on fast.com (private browser window);
-   - **Streaming video** on YouTube (private window) to gauge stability.
-5. Record the run in the history for auditing (including which user ran it).
+1. Connect to the network — reusing the profile **the system already has saved**, or creating one if needed.
+2. Wait for a valid DHCP lease (up to 15s).
+3. Fire three validations and show the results:
+   - **Continuous ping** to `google.com`, plotted live in the app;
+   - **Speed test**: download/upload throughput over HTTP;
+   - **Streaming probe**: sustained bitrate, to gauge stability.
+4. Record the run in the history for auditing (including which user ran it).
 
-Each test moves through **IDLE → CONNECTING → TEST_RUNNING** (or **FAILED**), with color feedback: gray (idle), yellow (connecting), green (running) and red (failed). While a test runs, the other buttons are locked to prevent concurrent commands.
+Everything runs inside the app — no terminal or browser windows are opened.
+
+Each test moves through **IDLE → CONNECTING → TEST_RUNNING** (or **FAILED**), with color feedback: gray (idle), yellow (connecting), green (running) and red (failed). Connecting is the one phase with no telemetry of its own, so it also shows a progress indicator on the network button and in the status bar. While a test runs, the other buttons are locked to prevent concurrent commands.
 
 ## Network discovery (no typing SSIDs)
 
@@ -115,5 +116,5 @@ Wi‑Fi credentials are encrypted at rest with **DPAPI** on Windows and with **A
 - **Enterprise (802.1X)** networks are supported via PEAP-MSCHAPv2 (user/password, optional logon domain). On Windows the credentials are applied to the profile through the native WLAN API; on Linux they go straight into the NetworkManager connection. Other EAP methods (TLS/certificates) are a next step.
 - **macOS** is not supported. Scanning without elevation has no stable command-line path since `airport` was removed in Sonoma 14.4, so it would need a native CoreWLAN binding.
 - **Speed and streaming** are now measured in-app via HTTP: download/upload throughput (Mbps) and a sustained-bitrate streaming stability verdict, both recorded in the history alongside ping telemetry (no browser windows). Endpoints and the target bitrate are configurable in `TestRunnerOptions`.
-- Process termination between runs is **scoped by PID**: WAVE only closes the processes it launched itself (today, the visible ping window), tracked by process id — it never kills the technician's own browsers or terminals.
+- WAVE launches **no external processes** for a test: ping, throughput and streaming are all measured in-process. Nothing pops up over the technician's desktop, and there is nothing to clean up between runs.
 - The test video URL is neutral and configurable (avoids hardcoding an example).

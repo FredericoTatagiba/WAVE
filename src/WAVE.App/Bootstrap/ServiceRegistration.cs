@@ -54,11 +54,9 @@ public static class ServiceRegistration
     {
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IAppLogger, FileAppLogger>();
-        services.AddSingleton<IProcessTerminator, SystemProcessTerminator>();
         AddPlatformServices(services);
         services.AddSingleton<IDhcpAddressValidator, NetworkInterfaceDhcpValidator>();
         services.AddSingleton<IContinuousPingMonitor, ContinuousPingMonitor>();
-        services.AddSingleton<IVisiblePingTerminal, VisiblePingTerminal>();
         services.AddSingleton<ISpeedMeter, HttpSpeedMeter>();
         services.AddSingleton<IStreamingProbe, HttpStreamingProbe>();
         services.AddSingleton<IHistoryExporter, CsvHistoryExporter>();

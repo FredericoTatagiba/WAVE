@@ -27,7 +27,6 @@ public class WifiTestOrchestratorTests
         FakeAuthorizationService authorization,
         FakeWifiConnector connector,
         FakeDhcpValidator dhcp,
-        FakeVisiblePingTerminal visiblePing,
         FakePingMonitor pingMonitor,
         FakeTestRunRepository history,
         IClock clock,
@@ -42,7 +41,6 @@ public class WifiTestOrchestratorTests
             connector,
             catalog ?? new FakeWifiProfileCatalog(),
             dhcp,
-            visiblePing,
             pingMonitor,
             speedMeter ?? new FakeSpeedMeter(),
             streamingProbe ?? new FakeStreamingProbe(),
@@ -58,7 +56,6 @@ public class WifiTestOrchestratorTests
             new FakeAuthorizationService(allow: false),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
-            new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
             new FakeTestRunRepository(),
             new AdvancingClock(TimeSpan.Zero),
@@ -73,7 +70,6 @@ public class WifiTestOrchestratorTests
     [Fact]
     public async Task RunTest_HappyPath_ReachesTestRunningAndMeasures()
     {
-        var visiblePing = new FakeVisiblePingTerminal();
         var pingMonitor = new FakePingMonitor();
         var speedMeter = new FakeSpeedMeter();
         var streamingProbe = new FakeStreamingProbe();
@@ -83,7 +79,6 @@ public class WifiTestOrchestratorTests
             new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
-            visiblePing,
             pingMonitor,
             new FakeTestRunRepository(),
             new AdvancingClock(TimeSpan.Zero),
@@ -95,8 +90,10 @@ public class WifiTestOrchestratorTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(TestOperationState.TestRunning, orchestrator.CurrentState);
+        // The continuous monitor is the only ping now: it feeds the in-app latency chart,
+        // and nothing opens a terminal window.
         Assert.True(pingMonitor.Started);
-        Assert.Equal(options.PingTargetHost, visiblePing.LaunchedHost);
+        Assert.Equal(options.PingTargetHost, pingMonitor.Host);
         Assert.True(speedMeter.Called);
         Assert.True(streamingProbe.Called);
     }
@@ -112,7 +109,6 @@ public class WifiTestOrchestratorTests
             new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
-            new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
             history,
             new AdvancingClock(TimeSpan.Zero),
@@ -141,7 +137,6 @@ public class WifiTestOrchestratorTests
             new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(false),
-            new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
             history,
             new AdvancingClock(TimeSpan.FromSeconds(30)),
@@ -165,7 +160,6 @@ public class WifiTestOrchestratorTests
             new FakeAuthorizationService(allow: true),
             connector,
             new FakeDhcpValidator(true),
-            new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
             history,
             new AdvancingClock(TimeSpan.Zero),
@@ -193,7 +187,6 @@ public class WifiTestOrchestratorTests
             new FakeAuthorizationService(allow: true),
             connector,
             new FakeDhcpValidator(false),
-            new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
             new FakeTestRunRepository(),
             new AdvancingClock(TimeSpan.FromSeconds(30)),
@@ -218,7 +211,6 @@ public class WifiTestOrchestratorTests
             new FakeAuthorizationService(allow: true),
             connector,
             new FakeDhcpValidator(false),
-            new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
             new FakeTestRunRepository(),
             new AdvancingClock(TimeSpan.FromSeconds(30)),
@@ -247,7 +239,6 @@ public class WifiTestOrchestratorTests
             connector,
             new FakeWifiProfileCatalog(exists: false),
             new FakeDhcpValidator(true),
-            new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
             new FakeSpeedMeter(),
             new FakeStreamingProbe(),
@@ -273,7 +264,6 @@ public class WifiTestOrchestratorTests
             new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
-            new FakeVisiblePingTerminal(),
             new FakePingMonitor(),
             new FakeTestRunRepository(),
             new AdvancingClock(TimeSpan.Zero),

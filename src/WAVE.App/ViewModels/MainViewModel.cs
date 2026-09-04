@@ -144,6 +144,7 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref _statusMessage, value))
             {
                 OnPropertyChanged(nameof(HasStatus));
+                OnPropertyChanged(nameof(ShowStatusBar));
             }
         }
     }
@@ -156,15 +157,35 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref _state, value))
             {
                 StopCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(IsConnecting));
             }
         }
     }
 
+    /// <summary>
+    /// Association and DHCP in progress: the phase with no telemetry of its own, so it is
+    /// the one that needs a progress indicator. Once the test is running, the latency
+    /// chart and the speed gauge are the feedback.
+    /// </summary>
+    public bool IsConnecting => _state == TestOperationState.Connecting;
+
     public bool IsBusy
     {
         get => _isBusy;
-        private set => SetProperty(ref _isBusy, value);
+        private set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                OnPropertyChanged(nameof(ShowStatusBar));
+            }
+        }
     }
+
+    /// <summary>
+    /// Keeps the bottom bar on while a test runs, even before any message arrives — the
+    /// progress indicator lives there and must not appear only once there is text.
+    /// </summary>
+    public bool ShowStatusBar => IsBusy || HasStatus;
 
     public IAsyncRelayCommand StopCommand { get; }
 
@@ -462,10 +483,13 @@ public sealed class MainViewModel : ObservableObject
             Telemetry.Reset();
         }
 
-        if (!string.IsNullOrEmpty(e.Message))
-        {
-            StatusMessage = e.Message;
-        }
+        // The orchestrator only sends a message when it has something specific to report
+        // (a failure reason). Progress phrasing is presentation, so it is composed here.
+        // Going Idle clears the bar: keeping the previous text would leave it claiming a
+        // test is running after the operator stopped it.
+        StatusMessage = !string.IsNullOrEmpty(e.Message)
+            ? e.Message
+            : ProgressMessage(e.State, e.Ssid);
 
         foreach (var network in Networks)
         {
@@ -473,6 +497,23 @@ public sealed class MainViewModel : ObservableObject
             network.State = isActive ? e.State : TestOperationState.Idle;
             network.IsEnabled = !IsBusy;
         }
+    }
+
+    /// <summary>
+    /// Text describing the phase the test just entered. Empty for the states that are not
+    /// progress (Idle, and Failed — which always arrives with its own reason), so the bar
+    /// goes away instead of keeping a stale claim.
+    /// </summary>
+    private static string ProgressMessage(TestOperationState state, string? ssid)
+    {
+        var network = string.IsNullOrEmpty(ssid) ? "a rede" : $"'{ssid}'";
+
+        return state switch
+        {
+            TestOperationState.Connecting => $"Conectando a {network} e aguardando endereço IP…",
+            TestOperationState.TestRunning => $"Testando {network}: medindo latência, velocidade e streaming…",
+            _ => string.Empty
+        };
     }
 
     private void OnPingSampled(object? sender, PingSample sample) => RunOnUi(() => Telemetry.AddSample(sample));
