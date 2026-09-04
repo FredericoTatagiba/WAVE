@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="WAVE.App.Views.LoginWindow"
+        Title="WAVE" Height="460" Width="400"
+        WindowStartupLocation="CenterScreen" CanResize="False"
+        Background="{StaticResource BrushBackground}" Foreground="{StaticResource BrushText}">
+    <Border Padding="26">
+        <StackPanel>
+            <TextBlock Text="WAVE" FontSize="26" FontWeight="Bold" Foreground="{StaticResource BrushAccent}" />
+            <TextBlock Text="{Binding Title}" Classes="heading" Margin="0,4,0,18" TextWrapping="Wrap" />
+
+            <TextBlock Text="Login" Classes="muted" />
+            <TextBox x:Name="UsernameInput" Height="30" Margin="0,2,0,10"
+                     Text="{Binding Username}" />
+
+            <StackPanel IsVisible="{Binding ShowSetupFields}">
+                <TextBlock Text="Nome de exibição" Classes="muted" />
+                <TextBox x:Name="DisplayNameInput" Height="30" Margin="0,2,0,10"
+                         Text="{Binding DisplayName}" />
+            </StackPanel>
+
+            <TextBlock Text="Senha" Classes="muted" />
+            <!-- Avalonia has no PasswordBox; a TextBox with PasswordChar masks input and,
+                 unlike WPF's control, is bindable. -->
+            <TextBox x:Name="PasswordInput" PasswordChar="●" Height="30" Margin="0,2,0,10" />
+
+            <StackPanel IsVisible="{Binding ShowSetupFields}">
+                <TextBlock Text="Confirmar senha" Classes="muted" />
+                <TextBox x:Name="ConfirmInput" PasswordChar="●" Height="30" Margin="0,2,0,10" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding Error}" Foreground="{StaticResource BrushFailed}" TextWrapping="Wrap"
+                       Margin="0,2,0,10" IsVisible="{Binding HasError}" />
+
+            <Button Content="{Binding ActionText}" Click="OnSubmit" IsDefault="True"
+                    Classes="action" Height="42" Margin="0,6,0,0"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+        </StackPanel>
+    </Border>
+</Window>

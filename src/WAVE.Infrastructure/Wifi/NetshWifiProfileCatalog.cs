@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using WAVE.Application.Abstractions;
 using WAVE.Infrastructure.Process;
 
@@ -7,6 +8,7 @@ namespace WAVE.Infrastructure.Wifi;
 /// Lists the profiles saved in Windows via <c>netsh wlan show profiles</c>. Extracts the
 /// name to the right of the " : " separator, regardless of the system language.
 /// </summary>
+[SupportedOSPlatform("windows")]
 public sealed class NetshWifiProfileCatalog : IWifiProfileCatalog
 {
     private const string KeyValueSeparator = " : ";

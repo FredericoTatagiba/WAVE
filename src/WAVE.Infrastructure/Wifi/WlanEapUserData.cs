@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using WAVE.Application.Abstractions;
 
 namespace WAVE.Infrastructure.Wifi;
@@ -8,6 +9,13 @@ namespace WAVE.Infrastructure.Wifi;
 /// via the native <c>wlanapi</c> API (netsh does not expose this operation). Best-effort:
 /// if it fails, it logs a warning and the connection falls back to the Windows credential prompt.
 /// </summary>
+/// <remarks>
+/// Windows only. The attribute is documentation, not enforcement: a bare
+/// <c>DllImport</c> is invisible to the platform-compatibility analyzer, so nothing stops
+/// this compiling for Linux — it would just throw <c>DllNotFoundException</c> at runtime.
+/// Only <see cref="NetshWifiConnector"/> reaches it, and that class is Windows-only too.
+/// </remarks>
+[SupportedOSPlatform("windows")]
 internal static class WlanEapUserData
 {
     private const uint ClientVersion = 2;

@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using WAVE.Application.Abstractions;
 using WAVE.Domain.Common;
 using WAVE.Domain.Networking;
@@ -10,6 +11,7 @@ namespace WAVE.Infrastructure.Wifi;
 /// needed) and requests the association. The real connectivity confirmation is
 /// done later by DHCP validation.
 /// </summary>
+[SupportedOSPlatform("windows")]
 public sealed class NetshWifiConnector : IWifiConnector
 {
     private readonly IWifiProfileXmlFactory _profileFactory;
@@ -52,7 +54,11 @@ public sealed class NetshWifiConnector : IWifiConnector
             if (!result.Succeeded)
             {
                 _logger.Warn($"netsh add profile failed: {result.StandardOutput} {result.StandardError}");
-                return Result.Failure("Não foi possível criar o perfil de rede no Windows.");
+                // "user=all" writes a machine-wide profile, which needs elevation; saying
+                // so beats the generic message the operator used to get.
+                return Result.Failure(
+                    NetworkToolDiagnosis.Explain(result, "netsh")
+                    ?? "Não foi possível criar o perfil de rede no Windows.");
             }
 
             ApplyEnterpriseCredentials(profile, secret);
@@ -116,7 +122,9 @@ public sealed class NetshWifiConnector : IWifiConnector
         if (!result.Succeeded)
         {
             _logger.Warn($"netsh connect failed: {result.StandardOutput} {result.StandardError}");
-            return Result.Failure("Falha ao solicitar a conexão com a rede.");
+            return Result.Failure(
+                NetworkToolDiagnosis.Explain(result, "netsh")
+                ?? "Falha ao solicitar a conexão com a rede.");
         }
 
         return Result.Success();

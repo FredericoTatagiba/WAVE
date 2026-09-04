@@ -20,7 +20,6 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     private readonly IWifiConnector _connector;
     private readonly IWifiProfileCatalog _catalog;
     private readonly IDhcpAddressValidator _dhcp;
-    private readonly IVisiblePingTerminal _visiblePing;
     private readonly IContinuousPingMonitor _pingMonitor;
     private readonly ISpeedMeter _speedMeter;
     private readonly IStreamingProbe _streamingProbe;
@@ -48,7 +47,6 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         IWifiConnector connector,
         IWifiProfileCatalog catalog,
         IDhcpAddressValidator dhcp,
-        IVisiblePingTerminal visiblePing,
         IContinuousPingMonitor pingMonitor,
         ISpeedMeter speedMeter,
         IStreamingProbe streamingProbe,
@@ -63,7 +61,6 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         _connector = connector;
         _catalog = catalog;
         _dhcp = dhcp;
-        _visiblePing = visiblePing;
         _pingMonitor = pingMonitor;
         _speedMeter = speedMeter;
         _streamingProbe = streamingProbe;
@@ -173,7 +170,6 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         }
 
         await _pingMonitor.StopAsync().ConfigureAwait(false);
-        _visiblePing.Close();
         await PersistRunAsync(TestOperationState.Idle, TestFailureReason.None).ConfigureAwait(false);
         EndSession();
         SetState(TestOperationState.Idle, null);
@@ -191,7 +187,6 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     {
         SetState(TestOperationState.TestRunning, ssid);
 
-        _visiblePing.Launch(_options.PingTargetHost);
         _pingMonitor.Start(_options.PingTargetHost);
 
         // Measures throughput and streaming stability in the app itself (no browser) and
@@ -259,7 +254,6 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     private async Task<Result> FailAsync(TestFailureReason reason, string message)
     {
         await _pingMonitor.StopAsync().ConfigureAwait(false);
-        _visiblePing.Close();
         await RollbackProfileIfCreatedAsync().ConfigureAwait(false);
         await PersistRunAsync(TestOperationState.Failed, reason).ConfigureAwait(false);
         Interlocked.Exchange(ref _running, 0);
@@ -294,7 +288,6 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     private async Task ResetToIdleAsync()
     {
         await _pingMonitor.StopAsync().ConfigureAwait(false);
-        _visiblePing.Close();
         Interlocked.Exchange(ref _running, 0);
         EndSession();
         SetState(TestOperationState.Idle, null);

@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.RegularExpressions;
 using WAVE.Application.Abstractions;
@@ -12,6 +13,7 @@ namespace WAVE.Infrastructure.Wifi;
 /// stable tokens (the "SSID N :" label and the "WPA2"/"WPA3"/"%" patterns), avoiding
 /// dependence on localized Windows text.
 /// </summary>
+[SupportedOSPlatform("windows")]
 public sealed class NetshWifiNetworkScanner : IWifiNetworkScanner
 {
     private static readonly Regex SsidLine =
@@ -75,7 +77,7 @@ public sealed class NetshWifiNetworkScanner : IWifiNetworkScanner
     }
 
     private static SecurityType DetermineSecurity(string blockText) =>
-        WifiSecurityParser.FromNetshBlock(blockText);
+        WifiSecurityParser.FromSecurityText(blockText);
 
     private static int ExtractSignal(string blockText)
     {

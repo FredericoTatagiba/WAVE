@@ -38,8 +38,17 @@ public sealed class NetworkButtonViewModel : ObservableObject
     public TestOperationState State
     {
         get => _state;
-        set => SetProperty(ref _state, value);
+        set
+        {
+            if (SetProperty(ref _state, value))
+            {
+                OnPropertyChanged(nameof(IsConnecting));
+            }
+        }
     }
+
+    /// <summary>This network is the one currently being connected to.</summary>
+    public bool IsConnecting => _state == TestOperationState.Connecting;
 
     public bool IsEnabled
     {

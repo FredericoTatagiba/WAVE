@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="WAVE.App.Controls.AddNetworkPanel">
+    <Border Background="#FF0E1621" CornerRadius="8" Padding="10" Margin="0,10,0,0">
+        <StackPanel>
+            <TextBlock Text="Cadastrar rede (admin)" Classes="heading" />
+            <WrapPanel>
+                <StackPanel Margin="0,0,8,8">
+                    <Label Content="_Nome de exibição" Target="DisplayNameBox" Classes="field" />
+                    <TextBox x:Name="DisplayNameBox" Width="150" Height="30" ToolTip.Tip="Como a rede aparece no botão de teste (ex.: Loja - Caixa 1)" />
+                </StackPanel>
+                <StackPanel Margin="0,0,8,8">
+                    <Label Content="_SSID" Target="SsidBox" Classes="field" />
+                    <TextBox x:Name="SsidBox" Width="150" Height="30" ToolTip.Tip="Nome técnico da rede Wi-Fi (SSID), exatamente como transmitido" />
+                </StackPanel>
+                <StackPanel Margin="0,0,8,8">
+                    <Label Content="Se_gurança" Target="SecurityBox" Classes="field" />
+                    <ComboBox x:Name="SecurityBox" Width="160" Height="30" ItemsSource="{Binding SecurityOptions}"
+                              SelectionChanged="OnSecurityChanged"
+                              ToolTip.Tip="Tipo de segurança da rede (Open, WPA2/WPA3 Personal ou Enterprise)" />
+                </StackPanel>
+                <StackPanel x:Name="PasswordField" Margin="0,0,8,8" IsVisible="False">
+                    <Label Content="Sen_ha / Passphrase" Target="PasswordInput" Classes="field" />
+                    <TextBox x:Name="PasswordInput" PasswordChar="●" Width="150" Height="30" ToolTip.Tip="Senha da rede (obrigatória em redes protegidas)" />
+                </StackPanel>
+                <StackPanel x:Name="UsernameField" Margin="0,0,8,8" IsVisible="False">
+                    <Label Content="_Usuário (enterprise)" Target="UsernameBox" Classes="field" />
+                    <TextBox x:Name="UsernameBox" Width="150" Height="30" ToolTip.Tip="Usuário de autenticação (apenas redes WPA2/WPA3 Enterprise)" />
+                </StackPanel>
+                <StackPanel x:Name="DomainField" Margin="0,0,8,8" IsVisible="False">
+                    <Label Content="_Domínio (enterprise)" Target="DomainBox" Classes="field" />
+                    <TextBox x:Name="DomainBox" Width="150" Height="30" ToolTip.Tip="Domínio de autenticação (apenas redes WPA2/WPA3 Enterprise)" />
+                </StackPanel>
+                <Button Content="_Adicionar" Click="OnAddClick" Classes="action" VerticalAlignment="Bottom" Margin="0,0,8,8" />
+            </WrapPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

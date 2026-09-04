@@ -1,0 +1,21 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="WAVE.App.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <!-- A ResourceInclude cannot sit directly under Resources; it has to be merged
+             into a dictionary. -->
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://WAVE/Resources/Brushes.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://WAVE/Resources/Styles.axaml" />
+    </Application.Styles>
+
+</Application>

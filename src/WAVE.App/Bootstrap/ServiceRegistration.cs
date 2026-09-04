@@ -54,13 +54,9 @@ public static class ServiceRegistration
     {
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IAppLogger, FileAppLogger>();
-        services.AddSingleton<IProcessTerminator, SystemProcessTerminator>();
-        services.AddSingleton<IWifiConnector, NetshWifiConnector>();
-        services.AddSingleton<IWifiNetworkScanner, NetshWifiNetworkScanner>();
-        services.AddSingleton<IWifiProfileCatalog, NetshWifiProfileCatalog>();
+        AddPlatformServices(services);
         services.AddSingleton<IDhcpAddressValidator, NetworkInterfaceDhcpValidator>();
         services.AddSingleton<IContinuousPingMonitor, ContinuousPingMonitor>();
-        services.AddSingleton<IVisiblePingTerminal, VisiblePingTerminal>();
         services.AddSingleton<ISpeedMeter, HttpSpeedMeter>();
         services.AddSingleton<IStreamingProbe, HttpStreamingProbe>();
         services.AddSingleton<IHistoryExporter, CsvHistoryExporter>();
@@ -68,16 +64,37 @@ public static class ServiceRegistration
         services.AddSingleton<IHistoryExporter, PdfHistoryExporter>();
         services.AddSingleton<INetworkProfileRepository, JsonNetworkProfileRepository>();
         services.AddSingleton<ITestRunRepository, JsonTestRunRepository>();
-        services.AddSingleton<ICredentialStore, DpapiCredentialStore>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<IUserRepository, JsonUserRepository>();
+    }
+
+    /// <summary>
+    /// Registers the implementations that talk to the operating system's Wi-Fi and
+    /// secret storage. The only place in the app that branches on the platform:
+    /// everything above depends on the abstraction, not on netsh or nmcli.
+    /// </summary>
+    private static void AddPlatformServices(IServiceCollection services)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            services.AddSingleton<IWifiConnector, NetshWifiConnector>();
+            services.AddSingleton<IWifiNetworkScanner, NetshWifiNetworkScanner>();
+            services.AddSingleton<IWifiProfileCatalog, NetshWifiProfileCatalog>();
+            services.AddSingleton<ICredentialStore, DpapiCredentialStore>();
+            return;
+        }
+
+        services.AddSingleton<IWifiConnector, NmcliWifiConnector>();
+        services.AddSingleton<IWifiNetworkScanner, NmcliWifiNetworkScanner>();
+        services.AddSingleton<IWifiProfileCatalog, NmcliWifiProfileCatalog>();
+        services.AddSingleton<ICredentialStore, LocalKeyCredentialStore>();
     }
 
     private static void AddPresentation(IServiceCollection services)
     {
         services.AddSingleton<IUserAlerts, MessageBoxUserAlerts>();
         services.AddSingleton<ICredentialPrompt, CredentialPromptService>();
-        services.AddSingleton<IExportFileDialog, SaveFileDialogExportFileDialog>();
+        services.AddSingleton<IExportFileDialog, StorageProviderExportFileDialog>();
         services.AddSingleton<AppNavigator>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();

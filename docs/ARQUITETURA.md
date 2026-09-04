@@ -8,13 +8,16 @@ O operador vê botões por rede (SSID). Ao tocar, o sistema conecta na rede (cri
 
 | Item | Decisão | Motivo |
 |------|---------|--------|
-| Framework | **WPF (.NET 8)** | Alinhado à spec; XAML+C#; acesso nativo a `netsh`/Native Wi-Fi, `Process` e DPAPI. |
-| Distribuição | **`.exe` self-contained single-file** (x64 e ARM64) | Roda em qualquer Windows (tablet + desktop) sem instalar .NET. |
+| Framework | **Avalonia 11 (.NET 8)** | XAML+C# como o WPF, com o mesmo modelo MVVM, mas rodando em Windows e Linux a partir de uma única árvore de UI. |
+| Distribuição | **binário self-contained single-file** (win-x64, win-arm64, linux-x64) | Roda sem instalar .NET; o público-alvo é técnico em campo, não quem administra runtimes. |
 | UI | **MVVM** (CommunityToolkit.Mvvm) | Separa front de back; ViewModels testáveis sem XAML. |
 | DI | **Microsoft.Extensions.DependencyInjection + Hosting** | Composição única, baixo acoplamento (DIP). |
-| Persistência | **JSON local** + **DPAPI** para credenciais | Leve, sem instalador de banco; segredos nunca em texto claro. |
+| Persistência | **JSON local**; credenciais sob **DPAPI** (Windows) ou **AES-GCM** (Linux) | Leve, sem instalador de banco; segredos nunca em texto claro. libsecret foi descartado por depender de keyring vivo em sessão D-Bus, que não existe via SSH nem em quiosque. |
+| Wi-Fi | **netsh + wlanapi** (Windows), **nmcli** (Linux) | São as interfaces nativas de cada SO. Ambas por trás das mesmas abstrações; o único `if` de plataforma vive no composition root. |
 
-> Android/`.apk` não é viável para este fluxo (as automações são Windows-nativas). O núcleo (`Domain`/`Application`) é independente de UI e poderia ser reaproveitado por um futuro front Android nas partes suportadas.
+> macOS está fora de escopo: desde o Sonoma 14.4 não há caminho estável de linha de comando para escanear redes sem elevação (`airport` foi removido), o que exigiria um binding nativo de CoreWLAN.
+>
+> Android/`.apk` continua inviável para este fluxo. O núcleo (`Domain`/`Application`) é independente de UI e poderia ser reaproveitado por um futuro front Android nas partes suportadas.
 
 ## 2. Separação back / front e módulos
 
@@ -22,17 +25,17 @@ Cinco projetos, dependências apontando sempre para dentro (Clean Architecture):
 
 ```
 WAVE.App  ──►  WAVE.Infrastructure  ──►  WAVE.Application  ──►  WAVE.Domain
-   (front/WPF)        (Windows)              (regras/uso)         (núcleo puro)
+ (front/Avalonia)   (Windows + Linux)         (regras/uso)         (núcleo puro)
         └───────────────────────────────────────────────────────────┘
                          (App referencia todos p/ compor a DI)
 
-WAVE.UnitTests  ──►  Application + Domain (lógica pura, sem Windows)
+WAVE.UnitTests  ──►  Application + Domain (lógica pura, sem SO) + os exportadores
 ```
 
 - **WAVE.Domain** — modelos, enums e *value objects* puros. Sem dependências externas. (back)
 - **WAVE.Application** — abstrações (interfaces), o orquestrador/máquina de estados e cálculos puros. Não conhece Windows nem XAML. (back)
-- **WAVE.Infrastructure** — implementações Windows das abstrações (netsh, processos, ping, navegador, DPAPI, JSON). (back)
-- **WAVE.App** — WPF: Views, componentes reutilizáveis, ViewModels, composição de DI. (front)
+- **WAVE.Infrastructure** — implementações por SO das abstrações: netsh/wlanapi/DPAPI no Windows, nmcli/AES-GCM no Linux, e o que é comum aos dois (processos, ping, navegador, JSON, exportadores). (back)
+- **WAVE.App** — Avalonia: Views, componentes reutilizáveis, ViewModels, composição de DI. É onde vive `AddPlatformServices`, o único ponto que ramifica por sistema operacional. (front)
 - **WAVE.UnitTests** — testa a lógica pura da Application/Domain.
 
 ## 3. Design patterns aplicados (sem overengineering)
@@ -66,11 +69,11 @@ Atende a regra 4 de `RegrasPrimordiaisDeDesenvolvimento.md`. Gerenciar perfis e 
 | Estados IDLE/CONNECTING/TEST_RUNNING/FAILED + cores | `TestOperationState` + `StateToBrushConverter` + estilos |
 | Bloqueio de reentrância | `WifiTestOrchestrator` rejeita run concorrente; ViewModel desabilita botões |
 | Criar perfil se não existir | `WlanProfileXmlBuilder` + `NetshWifiConnector.EnsureProfileAsync` |
-| Conectar via Windows | `NetshWifiConnector` (`netsh wlan connect`) |
-| Timeout DHCP 15s | `DhcpAddressValidator` + `TestRunnerOptions.DhcpTimeout` |
-| Encerrar só o que o WAVE abriu (janela de ping, por PID) | `SystemProcessTerminator` (escopo por PID) + `VisiblePingTerminal` |
-| Ping contínuo visível | `VisiblePingTerminalLauncher` (`cmd /c start ping -t`) |
-| Latência ao vivo no app | `ContinuousPingService` (.NET `Ping`) → `PingLatencyChart` |
+| Conectar ao SO | `NetshWifiConnector` (`netsh wlan connect`) / `NmcliWifiConnector` (`nmcli connection up`) |
+| Timeout DHCP 15s | `NetworkInterfaceDhcpValidator` + `TestRunnerOptions.DhcpTimeout` |
+| Nenhuma janela externa durante o teste | Nada é lançado: medições rodam no processo do app |
+| Ping contínuo | `ContinuousPingMonitor` (.NET `Ping`) → `PingLatencyChart` |
+| Feedback da fase de conexão | `MainViewModel.IsConnecting` → `ProgressBar` no botão e na barra de status |
 | fast.com anônimo | `FastComSpeedTestLauncher` (Edge `--inprivate`) |
 | YouTube alta qualidade anônimo | `YouTubeStreamingLauncher` (URL configurável) |
 | Layout retrato/paisagem | `Layout/ResponsiveSplitView` |
@@ -82,9 +85,11 @@ Valores como timeouts e URLs ficam em `TestRunnerOptions`/configuração — sem
 
 Ver `README.md` na raiz. Resumo:
 
-```powershell
+```bash
 dotnet build
 dotnet test
-dotnet publish src/WAVE.App -c Release -r win-x64   --self-contained true -p:PublishSingleFile=true
-dotnet publish src/WAVE.App -c Release -r win-arm64 --self-contained true -p:PublishSingleFile=true
+
+./publish.sh              # linux-x64
+# ou, no Windows:
+.\publish.ps1            # win-x64 e win-arm64
 ```

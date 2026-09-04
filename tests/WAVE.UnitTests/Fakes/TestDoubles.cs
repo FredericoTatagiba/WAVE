@@ -128,16 +128,6 @@ internal sealed class FakeDhcpValidator : IDhcpAddressValidator
         Task.FromResult(_hasLease);
 }
 
-internal sealed class FakeVisiblePingTerminal : IVisiblePingTerminal
-{
-    public string? LaunchedHost { get; private set; }
-
-    public bool Closed { get; private set; }
-
-    public void Launch(string host) => LaunchedHost = host;
-
-    public void Close() => Closed = true;
-}
 
 internal sealed class FakePingMonitor : IContinuousPingMonitor
 {
@@ -147,10 +137,14 @@ internal sealed class FakePingMonitor : IContinuousPingMonitor
 
     public bool Started { get; private set; }
 
+    /// <summary>Host the orchestrator asked to ping.</summary>
+    public string? Host { get; private set; }
+
     public void Start(string host)
     {
         Started = true;
         IsRunning = true;
+        Host = host;
     }
 
     public Task StopAsync()

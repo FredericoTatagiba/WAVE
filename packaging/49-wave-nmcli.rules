@@ -1,0 +1,26 @@
+/*
+ * Lets members of the "netdev" group change Wi-Fi settings without an interactive
+ * polkit prompt.
+ *
+ * WAVE creates and activates NetworkManager connections to run its tests. On a normal
+ * desktop session a polkit agent prompts for a password each time; over SSH, on a kiosk,
+ * or under a service account there is no agent at all and the call simply fails with
+ * "not authorized".
+ *
+ * Install:
+ *   sudo cp packaging/49-wave-nmcli.rules /etc/polkit-1/rules.d/
+ *   sudo usermod -aG netdev "$USER"      # then log out and back in
+ *
+ * Scope is deliberately narrow: these two actions only, not blanket NetworkManager
+ * access.
+ */
+polkit.addRule(function (action, subject) {
+    var allowed = [
+        "org.freedesktop.NetworkManager.settings.modify.system",
+        "org.freedesktop.NetworkManager.network-control"
+    ];
+
+    if (allowed.indexOf(action.id) !== -1 && subject.isInGroup("netdev")) {
+        return polkit.Result.YES;
+    }
+});
