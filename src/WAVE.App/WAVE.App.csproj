@@ -5,6 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>WAVE.App</RootNamespace>
     <AssemblyName>WAVE</AssemblyName>
+    <Version>2.0.0</Version>
     <RuntimeIdentifiers>win-x64;win-arm64;linux-x64</RuntimeIdentifiers>
     <SatelliteResourceLanguages>en;pt-BR</SatelliteResourceLanguages>
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
