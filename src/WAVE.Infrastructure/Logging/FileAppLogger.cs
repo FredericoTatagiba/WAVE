@@ -5,19 +5,20 @@ using WAVE.Infrastructure.Configuration;
 namespace WAVE.Infrastructure.Logging;
 
 /// <summary>
-/// Simple logger with a daily file in <c>%LOCALAPPDATA%\WAVE\logs</c>.
+/// Simple logger with a daily file in the configured logs directory.
 /// Logging failures never interrupt the application flow.
 /// </summary>
+/// <remarks>
+/// The target file is resolved on every write, not cached: it makes the daily rollover
+/// fall out for free and lets a directory change in the settings take effect without
+/// restarting the app.
+/// </remarks>
 public sealed class FileAppLogger : IAppLogger
 {
     private readonly object _gate = new();
-    private readonly string _file;
+    private readonly WaveDataPaths _paths;
 
-    public FileAppLogger()
-    {
-        AppPaths.EnsureCreated();
-        _file = Path.Combine(AppPaths.LogsDirectory, $"wave-{DateTime.Now:yyyyMMdd}.log");
-    }
+    public FileAppLogger(WaveDataPaths paths) => _paths = paths;
 
     public void Info(string message) => Write("INFO", message);
 
@@ -35,7 +36,8 @@ public sealed class FileAppLogger : IAppLogger
         {
             lock (_gate)
             {
-                File.AppendAllText(_file, line + Environment.NewLine);
+                var file = Path.Combine(_paths.LogsDirectory, $"wave-{DateTime.Now:yyyyMMdd}.log");
+                File.AppendAllText(file, line + Environment.NewLine);
             }
         }
         catch

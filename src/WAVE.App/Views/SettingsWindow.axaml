@@ -1,0 +1,72 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="WAVE.App.Views.SettingsWindow"
+        Title="WAVE — Configurações" Height="560" Width="620"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BrushBackground}" Foreground="{StaticResource BrushText}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="26" Spacing="18">
+
+            <TextBlock Text="Configurações do dispositivo" FontSize="18" FontWeight="Bold"
+                       Foreground="{StaticResource BrushAccent}" />
+
+            <!-- Storage -->
+            <Border Background="{StaticResource BrushSurface}" CornerRadius="8" Padding="14">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Onde salvar" Classes="heading" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Text="Deixe em branco para usar a pasta local padrão. Um caminho de rede inacessível no momento do teste faz o WAVE gravar localmente em vez de perder o registro." />
+
+                    <Label Content="_Histórico" Target="HistoryBox" Classes="field" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox x:Name="HistoryBox" Grid.Column="0" Height="30"
+                                 Text="{Binding HistoryDirectory}"
+                                 Watermark="pasta local padrão" />
+                        <Button Grid.Column="1" Content="Procurar" Click="OnBrowseHistory"
+                                Classes="action" Margin="8,0,0,0" />
+                    </Grid>
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,2,0,10"
+                               Text="{Binding EffectiveHistoryPath, StringFormat='Gravando em: {0}'}" />
+
+                    <Label Content="_Logs" Target="LogsBox" Classes="field" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox x:Name="LogsBox" Grid.Column="0" Height="30"
+                                 Text="{Binding LogsDirectory}"
+                                 Watermark="pasta local padrão" />
+                        <Button Grid.Column="1" Content="Procurar" Click="OnBrowseLogs"
+                                Classes="action" Margin="8,0,0,0" />
+                    </Grid>
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,2,0,10"
+                               Text="{Binding EffectiveLogsPath, StringFormat='Gravando em: {0}'}" />
+
+                    <Button Content="Salvar" Command="{Binding SaveCommand}" Classes="action"
+                            HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <!-- Administrator password -->
+            <Border Background="{StaticResource BrushSurface}" CornerRadius="8" Padding="14">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Senha de administrador" Classes="heading" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Text="Protege o cadastro de redes e esta tela. Não é uma barreira contra quem tem acesso ao sistema de arquivos do dispositivo." />
+
+                    <Label Content="Senha _atual" Target="CurrentPasswordBox" Classes="field" />
+                    <TextBox x:Name="CurrentPasswordBox" PasswordChar="●" Height="30" Margin="0,2,0,8" />
+
+                    <Label Content="_Nova senha" Target="NewPasswordBox" Classes="field" />
+                    <TextBox x:Name="NewPasswordBox" PasswordChar="●" Height="30" Margin="0,2,0,8" />
+
+                    <Label Content="Confirmar nova s_enha" Target="ConfirmPasswordBox" Classes="field" />
+                    <TextBox x:Name="ConfirmPasswordBox" PasswordChar="●" Height="30" Margin="0,2,0,10" />
+
+                    <Button Content="Alterar senha" Click="OnChangePassword" Classes="action"
+                            HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="{Binding Status}" IsVisible="{Binding HasStatus}"
+                       Foreground="{StaticResource BrushAccent}" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</Window>

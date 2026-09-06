@@ -11,15 +11,14 @@ public sealed class JsonTestRunRepository : ITestRunRepository, IDisposable
 {
     private readonly SemaphoreSlim _mutex = new(1, 1);
     private readonly IAppLogger _logger;
-    private readonly string _file;
+    private readonly WaveDataPaths _paths;
     private readonly int _maxItems;
 
-    public JsonTestRunRepository(IAppLogger logger, TestRunnerOptions options)
+    public JsonTestRunRepository(IAppLogger logger, WaveDataPaths paths, TestRunnerOptions options)
     {
         _logger = logger;
+        _paths = paths;
         _maxItems = options.MaxHistoryEntries;
-        AppPaths.EnsureCreated();
-        _file = AppPaths.HistoryFile;
     }
 
     public async Task AddAsync(TestRun run, CancellationToken cancellationToken = default)
@@ -61,14 +60,15 @@ public sealed class JsonTestRunRepository : ITestRunRepository, IDisposable
 
     private async Task<List<TestRun>> LoadAsync(CancellationToken cancellationToken)
     {
-        if (!File.Exists(_file))
+        var file = _paths.HistoryFile;
+        if (!File.Exists(file))
         {
             return new List<TestRun>();
         }
 
         try
         {
-            await using var stream = File.OpenRead(_file);
+            await using var stream = File.OpenRead(file);
             var runs = await JsonSerializer
                 .DeserializeAsync<List<TestRun>>(stream, WaveJson.Options, cancellationToken)
                 .ConfigureAwait(false);
@@ -83,7 +83,7 @@ public sealed class JsonTestRunRepository : ITestRunRepository, IDisposable
 
     private async Task PersistAsync(List<TestRun> runs, CancellationToken cancellationToken)
     {
-        await using var stream = File.Create(_file);
+        await using var stream = File.Create(_paths.HistoryFile);
         await JsonSerializer.SerializeAsync(stream, runs, WaveJson.Options, cancellationToken).ConfigureAwait(false);
     }
 
