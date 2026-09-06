@@ -16,7 +16,17 @@ public sealed record TestRun
     /// </summary>
     public TestMedium Medium { get; init; } = TestMedium.WiFi;
 
-    public required string OperatorName { get; init; }
+    /// <summary>
+    /// Device the test ran on. WAVE records the machine rather than a person: on a shared
+    /// tablet a per-operator login collapses into one account, and a name nobody can trust
+    /// is worse in an audit than no name at all.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not <c>required</c>. Runs recorded before this field existed carry an
+    /// operator name instead, and a missing required property makes the deserializer throw
+    /// for the whole file — losing every historical run, not just the field.
+    /// </remarks>
+    public string DeviceName { get; init; } = string.Empty;
 
     public required DateTimeOffset StartedAt { get; init; }
 

@@ -12,7 +12,7 @@ public class HistoryFilterTests
     {
         Id = Guid.NewGuid(),
         Ssid = ssid,
-        OperatorName = "op",
+        DeviceName = "TABLET-01",
         StartedAt = startedAt
     };
 
@@ -87,30 +87,16 @@ public class HistoryExportServiceTests
     {
         Id = Guid.NewGuid(),
         Ssid = ssid,
-        OperatorName = "op",
+        DeviceName = "TABLET-01",
         StartedAt = DateTimeOffset.UnixEpoch
     };
 
-    private static (HistoryExportService service, FakeHistoryExporter csv, FakeTestRunRepository repo) Build(
-        bool allow = true)
+    private static (HistoryExportService service, FakeHistoryExporter csv, FakeTestRunRepository repo) Build()
     {
         var repo = new FakeTestRunRepository();
-        var history = new TestHistoryService(repo, new FakeAuthorizationService(allow));
         var csv = new FakeHistoryExporter(ExportFormat.Csv);
-        var service = new HistoryExportService(history, new IHistoryExporter[] { csv });
+        var service = new HistoryExportService(repo, new IHistoryExporter[] { csv });
         return (service, csv, repo);
-    }
-
-    [Fact]
-    public async Task ExportAsync_WhenNotAuthorized_Fails()
-    {
-        var (service, csv, repo) = Build(allow: false);
-        repo.Added.Add(Run("A"));
-
-        var result = await service.ExportAsync(HistoryFilter.None, ExportFormat.Csv, new MemoryStream());
-
-        Assert.True(result.IsFailure);
-        Assert.Null(csv.Received);
     }
 
     [Fact]
@@ -143,10 +129,9 @@ public class HistoryExportServiceTests
     public void AvailableExporters_AreOrderedByFormat()
     {
         var repo = new FakeTestRunRepository();
-        var history = new TestHistoryService(repo, new FakeAuthorizationService(allow: true));
         var pdf = new FakeHistoryExporter(ExportFormat.Pdf);
         var csv = new FakeHistoryExporter(ExportFormat.Csv);
-        var service = new HistoryExportService(history, new IHistoryExporter[] { pdf, csv });
+        var service = new HistoryExportService(repo, new IHistoryExporter[] { pdf, csv });
 
         var formats = service.AvailableExporters.Select(exporter => exporter.Format).ToArray();
 

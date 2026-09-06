@@ -1,5 +1,4 @@
 using WAVE.Application.Abstractions;
-using WAVE.Application.Security;
 using WAVE.Application.Testing;
 using WAVE.Domain.Common;
 using WAVE.Domain.Networking;
@@ -24,7 +23,6 @@ public class ConnectivityTestOrchestratorTests
     };
 
     private static ConnectivityTestOrchestrator Build(
-        FakeAuthorizationService authorization,
         FakeWifiConnector connector,
         FakeDhcpValidator dhcp,
         FakePingMonitor pingMonitor,
@@ -36,8 +34,7 @@ public class ConnectivityTestOrchestratorTests
         FakeStreamingProbe? streamingProbe = null,
         FakeEthernetLinkProbe? ethernet = null) =>
         new(
-            authorization,
-            new CurrentUserContext(),
+            new FakeDeviceIdentity(),
             new FakeCredentialStore(),
             connector,
             catalog ?? new FakeWifiProfileCatalog(),
@@ -52,24 +49,6 @@ public class ConnectivityTestOrchestratorTests
             options);
 
     [Fact]
-    public async Task RunWifiTest_WhenUnauthorized_FailsAndStaysIdle()
-    {
-        var orchestrator = Build(
-            new FakeAuthorizationService(allow: false),
-            new FakeWifiConnector(),
-            new FakeDhcpValidator(true),
-            new FakePingMonitor(),
-            new FakeTestRunRepository(),
-            new AdvancingClock(TimeSpan.Zero),
-            FastOptions());
-
-        var result = await orchestrator.RunWifiTestAsync(OpenProfile());
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(TestOperationState.Idle, orchestrator.CurrentState);
-    }
-
-    [Fact]
     public async Task RunWifiTest_HappyPath_ReachesTestRunningAndMeasures()
     {
         var pingMonitor = new FakePingMonitor();
@@ -78,7 +57,6 @@ public class ConnectivityTestOrchestratorTests
         var options = FastOptions();
 
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
             pingMonitor,
@@ -108,7 +86,6 @@ public class ConnectivityTestOrchestratorTests
         var streamingProbe = new FakeStreamingProbe(new double[] { 20, 22, 25, 21 }); // todas >= 8 => Smooth
 
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
             new FakePingMonitor(),
@@ -123,6 +100,8 @@ public class ConnectivityTestOrchestratorTests
 
         var run = Assert.Single(history.Added);
         Assert.Equal(TestMedium.WiFi, run.Medium);
+        // Stopping a test that reached TEST_RUNNING records a completed run, not a failure.
+        Assert.True(run.Succeeded);
         Assert.NotNull(run.Speed);
         Assert.Equal(150, run.Speed!.Value.DownloadMbps);
         Assert.Equal(40, run.Speed!.Value.UploadMbps);
@@ -137,7 +116,6 @@ public class ConnectivityTestOrchestratorTests
         var history = new FakeTestRunRepository();
 
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(false),
             new FakePingMonitor(),
@@ -160,7 +138,6 @@ public class ConnectivityTestOrchestratorTests
         var connector = new FakeWifiConnector { ConnectResult = Result.Failure("sem sinal") };
 
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             connector,
             new FakeDhcpValidator(true),
             new FakePingMonitor(),
@@ -187,7 +164,6 @@ public class ConnectivityTestOrchestratorTests
         var providedSecret = new WifiSecret("wrong-password");
 
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             connector,
             new FakeDhcpValidator(false),
             new FakePingMonitor(),
@@ -211,7 +187,6 @@ public class ConnectivityTestOrchestratorTests
         var connector = new FakeWifiConnector();
 
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             connector,
             new FakeDhcpValidator(false),
             new FakePingMonitor(),
@@ -236,8 +211,7 @@ public class ConnectivityTestOrchestratorTests
         var providedSecret = new WifiSecret("right-password");
 
         var orchestrator = new ConnectivityTestOrchestrator(
-            new FakeAuthorizationService(allow: true),
-            new CurrentUserContext(),
+            new FakeDeviceIdentity(),
             credentialStore,
             connector,
             new FakeWifiProfileCatalog(exists: false),
@@ -265,7 +239,6 @@ public class ConnectivityTestOrchestratorTests
         var profile = new WifiNetworkProfile("Corporativa", "Corporativa", SecurityType.Wpa2Personal);
 
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
             new FakePingMonitor(),
@@ -289,7 +262,6 @@ public class ConnectivityTestOrchestratorTests
         var history = new FakeTestRunRepository();
 
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             connector,
             new FakeDhcpValidator(false),
             new FakePingMonitor(),
@@ -306,6 +278,8 @@ public class ConnectivityTestOrchestratorTests
         var run = Assert.Single(history.Added);
         Assert.Equal(TestMedium.Ethernet, run.Medium);
         Assert.Equal("eth0", run.Ssid);
+        Assert.Equal("TABLET-01", run.DeviceName);
+        Assert.True(run.Succeeded);
     }
 
     [Fact]
@@ -314,7 +288,6 @@ public class ConnectivityTestOrchestratorTests
         var history = new FakeTestRunRepository();
 
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
             new FakePingMonitor(),
@@ -334,7 +307,6 @@ public class ConnectivityTestOrchestratorTests
     public async Task RunWiredTest_WhenNoAdapter_FailsWithNoLink()
     {
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
             new FakePingMonitor(),
@@ -357,7 +329,6 @@ public class ConnectivityTestOrchestratorTests
         var history = new FakeTestRunRepository();
 
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
             new FakePingMonitor(),
@@ -376,7 +347,6 @@ public class ConnectivityTestOrchestratorTests
     public async Task RunWiredTest_WhileWifiTestRuns_IsRejected()
     {
         var orchestrator = Build(
-            new FakeAuthorizationService(allow: true),
             new FakeWifiConnector(),
             new FakeDhcpValidator(true),
             new FakePingMonitor(),

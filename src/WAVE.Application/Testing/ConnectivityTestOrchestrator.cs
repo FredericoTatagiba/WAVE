@@ -1,7 +1,6 @@
 using WAVE.Application.Abstractions;
 using WAVE.Domain.Common;
 using WAVE.Domain.Networking;
-using WAVE.Domain.Security;
 using WAVE.Domain.Testing;
 
 namespace WAVE.Application.Testing;
@@ -23,8 +22,7 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
     /// <summary>Label recorded when no wired adapter was found at all.</summary>
     private const string UnknownWiredTarget = "Cabo de rede";
 
-    private readonly IAuthorizationService _authorization;
-    private readonly ICurrentUserContext _currentUser;
+    private readonly IDeviceIdentity _device;
     private readonly ICredentialStore _credentials;
     private readonly IWifiConnector _connector;
     private readonly IWifiProfileCatalog _catalog;
@@ -47,13 +45,11 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
     private DateTimeOffset _startedAt;
     private string _target = string.Empty;
     private TestMedium _medium = TestMedium.WiFi;
-    private string _operatorName = string.Empty;
     private SpeedResult? _speed;
     private StreamingObservation? _streaming;
 
     public ConnectivityTestOrchestrator(
-        IAuthorizationService authorization,
-        ICurrentUserContext currentUser,
+        IDeviceIdentity device,
         ICredentialStore credentials,
         IWifiConnector connector,
         IWifiProfileCatalog catalog,
@@ -67,8 +63,7 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
         IAppLogger logger,
         TestRunnerOptions options)
     {
-        _authorization = authorization;
-        _currentUser = currentUser;
+        _device = device;
         _credentials = credentials;
         _connector = connector;
         _catalog = catalog;
@@ -227,7 +222,12 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
         }
 
         await _pingMonitor.StopAsync().ConfigureAwait(false);
-        await PersistRunAsync(TestOperationState.Idle, TestFailureReason.None).ConfigureAwait(false);
+
+        // Records the phase the run actually reached, not the idle state it is going to.
+        // Stopping a test that got as far as TEST_RUNNING means it completed and its
+        // measurements are valid; filing that as anything else would make every finished
+        // test read as a failure in the history.
+        await PersistRunAsync(CurrentState, TestFailureReason.None).ConfigureAwait(false);
         EndSession();
         SetState(TestOperationState.Idle, null);
     }
@@ -241,21 +241,13 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
     }
 
     /// <summary>
-    /// Claims the single-run slot after checking the caller may run tests at all. Both
-    /// entry points share it so a wired test cannot start on top of a Wi-Fi one.
+    /// Claims the single-run slot. Both entry points share it so a wired test cannot start
+    /// on top of a Wi-Fi one.
     /// </summary>
-    private Result TryStart()
-    {
-        var authorization = _authorization.Authorize(Permission.RunTest);
-        if (authorization.IsFailure)
-        {
-            return authorization;
-        }
-
-        return Interlocked.CompareExchange(ref _running, 1, 0) != 0
+    private Result TryStart() =>
+        Interlocked.CompareExchange(ref _running, 1, 0) != 0
             ? Result.Failure("Já existe um teste em execução.")
             : Result.Success();
-    }
 
     private async Task StartValidationRoutinesAsync(string target, CancellationToken cancellationToken)
     {
@@ -394,7 +386,6 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
         _startedAt = _clock.Now;
         _target = target;
         _medium = medium;
-        _operatorName = _currentUser.UserName;
         _profileCreatedThisRun = false;
         _speed = null;
         _streaming = null;
@@ -425,7 +416,7 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
             Id = _runId,
             Ssid = _target,
             Medium = _medium,
-            OperatorName = _operatorName,
+            DeviceName = _device.Name,
             StartedAt = _startedAt,
             FinishedAt = _clock.Now,
             FinalState = finalState,

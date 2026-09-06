@@ -19,7 +19,7 @@ public class HistoryExporterOutputTests
         {
             Id = Guid.NewGuid(),
             Ssid = "Corp-Guest",
-            OperatorName = "tecnico",
+            DeviceName = "TABLET-01",
             StartedAt = new DateTimeOffset(2026, 3, 1, 9, 30, 0, TimeSpan.Zero),
             FinalState = TestOperationState.TestRunning
         },
@@ -28,7 +28,7 @@ public class HistoryExporterOutputTests
             Id = Guid.NewGuid(),
             // Accented and non-Latin text: DejaVu covers these, a wrong fallback would not.
             Ssid = "Rede-Ação",
-            OperatorName = "operador",
+            DeviceName = "TABLET-02",
             StartedAt = new DateTimeOffset(2026, 3, 2, 14, 0, 0, TimeSpan.Zero),
             FinalState = TestOperationState.Failed
         }

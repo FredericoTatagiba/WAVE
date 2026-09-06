@@ -17,7 +17,7 @@ public static class HistoryReport
     {
         new HistoryColumn("Rede", run => run.Ssid),
         new HistoryColumn("Meio", run => MediumText(run.Medium)),
-        new HistoryColumn("Operador", run => run.OperatorName),
+        new HistoryColumn("Dispositivo", run => run.DeviceName),
         new HistoryColumn("Início", run => run.StartedAt),
         new HistoryColumn("Fim", run => run.FinishedAt),
         new HistoryColumn("Resultado", run => run.Succeeded ? "Sucesso" : "Falha"),
