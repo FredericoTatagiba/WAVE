@@ -40,6 +40,7 @@ public sealed class MainViewModel : ObservableObject
     private DateTime? _filterFrom;
     private DateTime? _filterTo;
     private string _filterSsid = string.Empty;
+    private string _pingTarget = string.Empty;
     private WiredButtonViewModel _wired;
 
     public MainViewModel(
@@ -49,6 +50,7 @@ public sealed class MainViewModel : ObservableObject
         IEthernetLinkProbe ethernet,
         ITestRunRepository history,
         IAdminGate adminGate,
+        ISettingsStore settings,
         IUserAlerts alerts,
         IAppLogger logger,
         TestRunnerOptions options,
@@ -64,6 +66,9 @@ public sealed class MainViewModel : ObservableObject
         _history = history;
         _adminGate = adminGate;
         _alerts = alerts;
+        _pingTarget = string.IsNullOrWhiteSpace(settings.Current.PingTargetHost)
+            ? options.PingTargetHost
+            : settings.Current.PingTargetHost;
         _logger = logger;
         _options = options;
         _credentialStore = credentialStore;
@@ -80,6 +85,14 @@ public sealed class MainViewModel : ObservableObject
         ScanCommand = new AsyncRelayCommand(LoadNetworksAsync);
         ExportCommand = new AsyncRelayCommand(ExportAsync);
         ClearFilterCommand = new RelayCommand(ClearFilter);
+
+        // The device default first, then addresses that isolate a layer: a raw IP answers
+        // without DNS in the path, so a name that fails while the IP works points at
+        // resolution rather than at connectivity.
+        foreach (var suggestion in new[] { _pingTarget, "8.8.8.8", "1.1.1.1", "google.com" }.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            PingTargetSuggestions.Add(suggestion);
+        }
 
         _orchestrator.StateChanged += OnStateChanged;
         _orchestrator.PingSampled += OnPingSampled;
@@ -99,6 +112,22 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public ObservableCollection<TestRunViewModel> History { get; } = new();
+
+    /// <summary>
+    /// Host pinged by the next test. Editable during the session without touching the
+    /// device default, because switching it is a diagnostic move: if the gateway answers
+    /// promptly and a public address does not, the problem is upstream of this link.
+    /// Every run records the target it used, so changing it never makes two rows of the
+    /// history quietly incomparable.
+    /// </summary>
+    public string PingTarget
+    {
+        get => _pingTarget;
+        set => SetProperty(ref _pingTarget, value);
+    }
+
+    /// <summary>Suggestions offered next to the field; the operator may type anything.</summary>
+    public ObservableCollection<string> PingTargetSuggestions { get; } = new();
 
     public TelemetryViewModel Telemetry { get; }
 
@@ -287,7 +316,7 @@ public sealed class MainViewModel : ObservableObject
                 transientSecret = prompt.Secret;
             }
 
-            var result = await _orchestrator.RunWifiTestAsync(profile, transientSecret).ConfigureAwait(false);
+            var result = await _orchestrator.RunWifiTestAsync(profile, transientSecret, PingTarget).ConfigureAwait(false);
             if (result.IsSuccess)
             {
                 await RememberOnSuccessAsync(profile, transientSecret).ConfigureAwait(false);
@@ -316,7 +345,7 @@ public sealed class MainViewModel : ObservableObject
         StatusMessage = string.Empty;
         try
         {
-            var result = await _orchestrator.RunWiredTestAsync().ConfigureAwait(false);
+            var result = await _orchestrator.RunWiredTestAsync(PingTarget).ConfigureAwait(false);
             if (result.IsFailure)
             {
                 ReportFailure(result.Error);

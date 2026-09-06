@@ -16,10 +16,55 @@ public sealed class TestRunViewModel
         ResultText = run.Succeeded ? "Sucesso" : $"Falha: {run.FailureReason}";
         PacketLossText = $"{run.Ping.PacketLossPercent.ToString("0.#", CultureInfo.CurrentCulture)}% perda";
         AverageLatencyText = run.Ping.Received > 0
-            ? $"{run.Ping.AvgMs.ToString("0", CultureInfo.CurrentCulture)} ms"
+            ? $"{run.Ping.AvgMs.ToString("0", CultureInfo.CurrentCulture)} ms{PingTargetSuffix(run.PingTarget)}"
             : "—";
         SpeedText = FormatSpeed(run.Speed);
         StreamingText = FormatStreaming(run.Streaming);
+        JitterText = FormatJitter(run.Ping);
+        BufferbloatText = FormatBufferbloat(run);
+    }
+
+    /// <summary>
+    /// Names what answered, since the operator can change it between runs and two rows
+    /// with different targets are not comparable. Empty for runs recorded before the
+    /// target started being stored.
+    /// </summary>
+    private static string PingTargetSuffix(string target) =>
+        string.IsNullOrWhiteSpace(target) ? string.Empty : $" · {target}";
+
+    /// <summary>
+    /// "jitter 3 ms · p95 24 ms", or "—" for a run that never measured them — a row from
+    /// before these metrics existed must not read as a perfectly steady link.
+    /// </summary>
+    private static string FormatJitter(PingStatistics ping)
+    {
+        if (ping.JitterMs is not { } jitterMs || ping.P95Ms is not { } p95Ms)
+        {
+            return "—";
+        }
+
+        var jitter = jitterMs.ToString("0.#", CultureInfo.CurrentCulture);
+        var p95 = p95Ms.ToString("0", CultureInfo.CurrentCulture);
+        return $"jitter {jitter} ms · p95 {p95} ms";
+    }
+
+    /// <summary>
+    /// "18 → 240 ms sob carga (+222)": what the link does to latency once it is saturated,
+    /// which is what decides whether a call or a game survives a download on the same link.
+    /// </summary>
+    private static string FormatBufferbloat(TestRun run)
+    {
+        if (run.PingIdle is not { Received: > 0 } idle ||
+            run.PingUnderLoad is not { Received: > 0 } load)
+        {
+            return "—";
+        }
+
+        var from = idle.AvgMs.ToString("0", CultureInfo.CurrentCulture);
+        var to = load.AvgMs.ToString("0", CultureInfo.CurrentCulture);
+        var delta = (load.AvgMs - idle.AvgMs).ToString("+0;-0;0", CultureInfo.CurrentCulture);
+
+        return $"{from} → {to} ms sob carga ({delta})";
     }
 
     private static string FormatSpeed(SpeedResult? speed)
@@ -72,4 +117,10 @@ public sealed class TestRunViewModel
 
     /// <summary>Streaming stability, or "—" when not captured.</summary>
     public string StreamingText { get; }
+
+    /// <summary>Jitter and 95th percentile — how steady the link was, not just how fast.</summary>
+    public string JitterText { get; }
+
+    /// <summary>Idle vs saturated latency, or "—" for runs recorded before the split.</summary>
+    public string BufferbloatText { get; }
 }

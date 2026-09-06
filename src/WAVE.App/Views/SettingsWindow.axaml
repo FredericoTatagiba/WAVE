@@ -39,6 +39,13 @@
                     <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,2,0,10"
                                Text="{Binding EffectiveLogsPath, StringFormat='Gravando em: {0}'}" />
 
+                    <Label Content="Alvo padrão do _ping" Target="PingTargetBox" Classes="field" />
+                    <TextBox x:Name="PingTargetBox" Height="30" Margin="0,2,0,4"
+                             Text="{Binding PingTargetHost}"
+                             Watermark="google.com" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,0,0,10"
+                               Text="Com o que cada teste começa. O operador ainda pode trocar por teste na tela principal, e cada execução grava o alvo que usou." />
+
                     <Button Content="Salvar" Command="{Binding SaveCommand}" Classes="action"
                             HorizontalAlignment="Left" />
                 </StackPanel>

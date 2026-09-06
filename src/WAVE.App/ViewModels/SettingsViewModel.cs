@@ -17,6 +17,7 @@ public sealed class SettingsViewModel : ObservableObject
 
     private string _historyDirectory = string.Empty;
     private string _logsDirectory = string.Empty;
+    private string _pingTargetHost = string.Empty;
     private string _status = string.Empty;
 
     public SettingsViewModel(
@@ -29,6 +30,7 @@ public sealed class SettingsViewModel : ObservableObject
 
         _historyDirectory = settings.Current.HistoryDirectory ?? string.Empty;
         _logsDirectory = settings.Current.LogsDirectory ?? string.Empty;
+        _pingTargetHost = settings.Current.PingTargetHost ?? string.Empty;
 
         SaveCommand = new AsyncRelayCommand(SaveAsync);
     }
@@ -45,6 +47,17 @@ public sealed class SettingsViewModel : ObservableObject
     {
         get => _logsDirectory;
         set => SetProperty(ref _logsDirectory, value);
+    }
+
+    /// <summary>
+    /// Device default for the ping target; empty means the built-in one. The operator can
+    /// still override it per test from the main screen — this is the value the app starts
+    /// each session with.
+    /// </summary>
+    public string PingTargetHost
+    {
+        get => _pingTargetHost;
+        set => SetProperty(ref _pingTargetHost, value);
     }
 
     /// <summary>
@@ -79,7 +92,8 @@ public sealed class SettingsViewModel : ObservableObject
             var updated = _settings.Current with
             {
                 HistoryDirectory = Normalize(HistoryDirectory),
-                LogsDirectory = Normalize(LogsDirectory)
+                LogsDirectory = Normalize(LogsDirectory),
+                PingTargetHost = Normalize(PingTargetHost)
             };
 
             await _settings.SaveAsync(updated).ConfigureAwait(false);

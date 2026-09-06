@@ -102,8 +102,9 @@
                 <Border Background="{StaticResource BrushSurface}" CornerRadius="10" Padding="12" Margin="6">
                     <Grid RowDefinitions="Auto,2*,3*">
 
-                        <!-- Indicators -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal">
+                        <!-- Indicators. A WrapPanel, not a horizontal stack: the ping target
+                             card makes five, which no longer fits a narrow tablet in one row. -->
+                        <WrapPanel Grid.Row="0" Orientation="Horizontal">
                             <Border Background="#FF0E1621" CornerRadius="8" Padding="14,10" Margin="0,0,8,10">
                                 <StackPanel>
                                     <TextBlock Text="Última latência" Classes="muted" />
@@ -122,7 +123,7 @@
                                     <TextBlock Text="{Binding Telemetry.PacketLossPercent, StringFormat={}{0}%}" FontSize="20" FontWeight="Bold" />
                                 </StackPanel>
                             </Border>
-                            <Border Background="#FF0E1621" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                            <Border Background="#FF0E1621" CornerRadius="8" Padding="14,10" Margin="0,0,8,10">
                                 <StackPanel>
                                     <TextBlock Text="Pacotes (recv/env)" Classes="muted" />
                                     <TextBlock FontSize="20" FontWeight="Bold">
@@ -132,7 +133,21 @@
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
-                        </StackPanel>
+
+                            <!-- Sits with the indicators because it is what they are about:
+                                 every number to the left describes this host answering. -->
+                            <Border Background="#FF0E1621" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <Label Content="Pingando (host ou IP)" Target="PingTargetInput" Classes="muted" Padding="0" />
+                                    <AutoCompleteBox x:Name="PingTargetInput" Width="200" Height="32" Margin="0,4,0,0"
+                                                     Text="{Binding PingTarget, Mode=TwoWay}"
+                                                     ItemsSource="{Binding PingTargetSuggestions}"
+                                                     FilterMode="Contains" MinimumPrefixLength="0"
+                                                     Watermark="alvo do ping"
+                                                     ToolTip.Tip="Host ou IP pingado no próximo teste. Fica gravado junto com a execução, para que duas linhas do histórico só sejam comparadas quando mediram o mesmo alvo." />
+                                </StackPanel>
+                            </Border>
+                        </WrapPanel>
 
                         <!-- Latency chart + live speed gauge: side by side when wide, stacked when narrow -->
                         <ctrl:ResponsiveSplitView Grid.Row="1" Margin="0,0,0,10"
@@ -203,6 +218,8 @@
                                                                    Classes="result"
                                                                    Classes.succeeded="{Binding Succeeded}" />
                                                         <TextBlock Text="{Binding AverageLatencyText}" Classes="muted" HorizontalAlignment="Right" />
+                                                        <TextBlock Text="{Binding JitterText}" Classes="muted" HorizontalAlignment="Right" />
+                                                        <TextBlock Text="{Binding BufferbloatText}" Classes="muted" HorizontalAlignment="Right" />
                                                         <TextBlock Text="{Binding PacketLossText}" Classes="muted" HorizontalAlignment="Right" />
                                                         <TextBlock Text="{Binding SpeedText}" Classes="muted" HorizontalAlignment="Right" />
                                                         <TextBlock Text="{Binding StreamingText}" Classes="muted" HorizontalAlignment="Right" />
