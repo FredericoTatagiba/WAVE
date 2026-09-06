@@ -10,7 +10,7 @@ Built following SOLID and Clean Code principles, with design patterns and securi
 
 ## What it does
 
-The technician signs in, then sees a screen of network buttons. Tapping a network makes WAVE:
+The technician opens the app onto a screen of network buttons — plus one for the cable. Tapping a target makes WAVE:
 
 1. Connect to the network — reusing the profile **the system already has saved**, or creating one if needed.
 2. Wait for a valid DHCP lease (up to 15s).
@@ -29,37 +29,30 @@ Each test moves through **IDLE → CONNECTING → TEST_RUNNING** (or **FAILED**)
 On startup — and via the **Scan networks** button — WAVE scans visible networks (`netsh wlan show networks`) and merges them with the profiles already saved in Windows (`netsh wlan show profiles`). Each network becomes a button with a status line (security, readiness and signal):
 
 - **Open** or **already known to Windows** → shown as "ready" and connects **without a password**.
-- **Protected but still unknown** → shown as "needs password"; an administrator enters the password once. After that Windows knows the network and the operator tests it directly.
+- **Protected but still unknown** → shown as "needs password"; the technician enters the passphrase once, and WAVE only remembers it after the connection actually succeeds — a wrong password is never stored. After that the system knows the network and it is tested directly.
 
 So manual registration is the exception, not the rule.
 
-## Users, roles and the administrator (RBAC)
+## No sign-in, one administrator password
 
-WAVE requires a **login**, and access is controlled by role (enforced in the application layer, not just the UI):
+**There is no login screen.** WAVE opens straight into the network list, because running a test and reading the history need no identity. The password only appears when someone reaches for an administrator action:
 
-- **Operator**: runs tests and views history.
-- **Administrator**: everything an operator does, plus registers/edits networks and their Wi‑Fi passwords, manages users, and changes settings.
+- **Registering or deleting a network** in the catalog (which stores its Wi‑Fi password).
+- **Changing the settings** — where the history and the logs are written.
 
-### First-time setup: creating the administrator
+The first time either is attempted, WAVE asks you to **create** the administrator password (min. 8 characters, stored as a **PBKDF2‑SHA256 hash**); after that it asks you to enter it, and the session stays unlocked until the app closes.
 
-The **very first time** WAVE runs there are no users, so it opens a **"Create administrator"** screen. You define the administrator's **login, display name and password** (min. 8 characters). This first account is the anchor of the whole access model:
+Everything else — scanning, testing Wi‑Fi and cable, viewing and exporting the history, and remembering the passphrase of a network the technician just connected to — needs nothing.
 
-- It is the account that can **register the Wi‑Fi networks and their passwords** used for the tests.
-- It can **create the other users** (the technicians who will run the tests) and assign each one a role.
-- It can **reset passwords, change roles and remove users**, and change settings.
+> **Why not per-technician logins?** On a shared field tablet, a typed password makes accounts converge into one shared account, and then the "who ran this test" column names someone nobody can vouch for — worse in an audit than no name at all. WAVE records the **device** instead, which is a fact it can actually assert. If a per-person audit trail is a real requirement, the answer is shipping results off the device, not a login screen: the history is a local JSON file that anyone with filesystem access can edit, so a local login would only be decoration.
 
-Without this administrator, there is no way to configure networks or add people — that is exactly why WAVE forces its creation up front. The password is stored as a **PBKDF2‑SHA256 hash** (never in plain text). WAVE protects the **last administrator** from being deleted or demoted, so you can never lock yourself out.
-
-### Day-to-day
-
-After setup, WAVE opens the **login** screen; sign in with your account. In the top bar, **Usuários** (admin only) opens user management to add technicians (usually as Operators), reset passwords, change roles or remove users; **Sair** switches user. The history records **who** ran each test. Wi‑Fi passwords are stored separately, encrypted with **DPAPI**.
-
-> Lost the admin password? Delete `%LOCALAPPDATA%\WAVE\users.json` and WAVE will ask you to create the administrator again on the next launch.
+> **Lost the administrator password?** Delete the `adminPasswordHash` entry from `%LOCALAPPDATA%\WAVE\settings.json` (or the whole file, which also resets the paths). WAVE will ask you to create the password again on the next administrator action. Note this makes the password gate an application-level control, not a barrier against someone with access to the device's filesystem — the same has always been true of the Wi‑Fi credentials, which DPAPI binds to the Windows account rather than to anything WAVE asks for.
 
 ## Telemetry and auditing
 
 - **Live latency**: a chart of latency (ms) plus last / average / packet-loss indicators, computed from a background ping.
-- **History**: each run records network, timestamp, the user who ran it, result (success/failure and reason) and ping statistics.
+- **History**: each run records network, medium (Wi‑Fi or cable), timestamp, the device it ran on, result (success/failure and reason) and ping statistics.
+- **Where it is written**: by default `%LOCALAPPDATA%\WAVE`, but the history and log directories are configurable — point them at a share and the reports collect themselves. An unreachable target degrades to the local folder instead of losing the run.
 
 ## Architecture
 
@@ -68,16 +61,16 @@ Layered solution (Clean Architecture), with dependencies always pointing inward:
 ```
 src/
   WAVE.Domain          # Pure core: models, enums, Result (no dependencies)
-  WAVE.Application     # Abstractions, RBAC, auth, discovery and orchestrator (state machine)
-  WAVE.Infrastructure  # Windows: netsh, processes, ping, browser, DPAPI, PBKDF2, JSON
-  WAVE.App             # WPF front end (MVVM), reusable components, DI composition
+  WAVE.Application     # Abstractions, admin gate, settings, discovery and orchestrator (state machine)
+  WAVE.Infrastructure  # netsh/nmcli, processes, ping, DPAPI/AES, PBKDF2, JSON
+  WAVE.App             # Avalonia front end (MVVM), reusable components, DI composition
 tests/
   WAVE.UnitTests       # Pure-logic tests
 docs/
   ARQUITETURA.md       # Layer, pattern and spec-mapping details (in Portuguese)
 ```
 
-Back end and front end are separated; the front end is componentized (network button, latency chart, responsive portrait/landscape layout, add-network panel, login and user-management windows). Patterns applied without overengineering: MVVM, State, Strategy, Repository, Factory, Dependency Injection, Observer and Result. Details in [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
+Back end and front end are separated; the front end is componentized (network button, latency chart, responsive portrait/landscape layout, add-network panel, settings and administrator-password windows). Patterns applied without overengineering: MVVM, State, Strategy, Repository, Factory, Dependency Injection, Observer and Result. Details in [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
 
 ## Requirements
 
@@ -100,14 +93,14 @@ Download the latest build from the **[Releases](https://github.com/FredericoTata
 
 ## First run
 
-1. Open WAVE. The first time, the **Create administrator** screen appears — set the admin login, display name and password (≥8 chars). This account administers the app.
-2. You land on the main screen; nearby networks show up automatically (or click **Scan networks**).
-3. Tap an **open** or **already known** network to test — no password needed. For a protected, still-unknown network, an administrator registers the Wi‑Fi password once.
-4. Use **Usuários** (admin) to add technicians as Operators; **Sair** switches user.
+1. Open WAVE. You land straight on the main screen — there is no sign-in. Nearby networks show up automatically (or click **Scan networks**), and the **Cabo de rede** button sits above them.
+2. Tap a network — or the cable — to test. **Open** and **already known** networks need no password.
+3. For a protected, still-unknown network, WAVE asks for its passphrase once and remembers it after the connection actually succeeds.
+4. **Configurações** (top bar) and registering a network in the catalog ask for the administrator password, creating it on first use.
 
 ## Where data lives / security
 
-Local data lives in `%LOCALAPPDATA%\WAVE` on Windows and `~/.local/share/WAVE` on Linux: users (with PBKDF2 password hashes), network profiles, history, **encrypted** Wi‑Fi credentials and logs. Security summary: login required, RBAC enforced in the application layer, passwords under PBKDF2, input validation, and network-tool arguments passed as an argument vector (never through a shell).
+Local data lives in `%LOCALAPPDATA%\WAVE` on Windows and `~/.local/share/WAVE` on Linux: settings (with the PBKDF2 administrator hash), network profiles, **encrypted** Wi‑Fi credentials, plus the history and logs — the last two relocatable from **Configurações**. Security summary: administrator actions gated in the application layer, the password under PBKDF2, input validation, and network-tool arguments passed as an argument vector (never through a shell).
 
 Wi‑Fi credentials are encrypted at rest with **DPAPI** on Windows and with **AES-GCM** on Linux, keyed by a random 256-bit key in a `0600` file inside the `0700` data directory. The two formats are not interchangeable: a data directory copied between machines, OS accounts or operating systems will not decrypt, and WAVE simply asks for the passphrase again.
 

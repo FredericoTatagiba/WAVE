@@ -49,15 +49,16 @@ WAVE.UnitTests  ──►  Application + Domain (lógica pura, sem SO) + os expo
 - **Observer** — telemetria de ping como fluxo de eventos que a UI observa (`INotifyPropertyChanged`).
 - **Result (railway)** — `Result`/`Result<T>` para fluxo previsível sem exceções de controle.
 
-## 4. Segurança e permissionamento (RBAC)
+## 4. Segurança e permissionamento
 
-Atende a regra 4 de `RegrasPrimordiaisDeDesenvolvimento.md`. Gerenciar perfis e credenciais Wi-Fi é operação sensível.
+Atende a regra 4 de `RegrasPrimordiaisDeDesenvolvimento.md`. Curar o catálogo de redes e suas credenciais é operação sensível; rodar um teste não é.
 
-- **Papéis**: `Operator` (executa testes, vê histórico) e `Administrator` (tudo + gerenciar perfis/credenciais + editar configurações).
-- **Permissões**: `RunTest`, `ViewHistory`, `ManageProfiles`, `EditSettings`.
-- **Autorização em todas as camadas**: o `AuthorizationService` é validado **na Application** (no orquestrador e nos serviços de perfil), não só na UI — a UI apenas esconde/desabilita o que o papel não pode.
-- **Menor privilégio**: o app inicia como `Operator`; ações administrativas exigem elevação explícita de papel.
-- **Credenciais**: chaves WPA2/WPA3 cifradas com **DPAPI** (`ProtectedData`), nunca em texto claro; o XML de perfil é gerado em memória e não é persistido com a chave.
+- **Sem login**: o app abre direto na lista de redes. Executar teste e ler histórico não exigem identidade, então não se cobra senha por eles.
+- **Uma senha de administrador**, verificada no momento da ação: cadastrar/excluir rede no catálogo e editar configurações. Criada no primeiro uso e mantida desbloqueada até o app fechar (`IAdminSession`).
+- **Autorização na Application**: `IAdminSession.RequireUnlocked()` é validado no `NetworkProfileService`, não só na UI — esconder um botão não é controle de acesso.
+- **Limite honesto**: é um controle de aplicação, não uma fronteira criptográfica. Quem edita `settings.json` remove o hash — e esse é justamente o caminho de recuperação da senha perdida.
+- **Identidade no histórico é o dispositivo**, não a pessoa (`IDeviceIdentity`). Num tablet compartilhado, login por técnico converge para conta única e o nome registrado deixa de ser confiável; auditoria por pessoa exigiria enviar o resultado para fora do dispositivo, já que o histórico é um JSON local editável.
+- **Credenciais**: chaves WPA2/WPA3 cifradas com **DPAPI** (`ProtectedData`) no Windows e AES-GCM no Linux, nunca em texto claro; o XML de perfil é gerado em memória e não é persistido com a chave. O DPAPI é amarrado à conta Windows, não à senha do WAVE.
 - **Validação de entrada**: SSIDs/credenciais validados antes de montar comandos; parâmetros de `netsh`/URL tratados para evitar injeção de argumentos.
 - **Exceções**: tratadas sem vazar detalhes internos ao operador (mensagens amigáveis; detalhes vão para log técnico).
 
