@@ -1,4 +1,5 @@
 using System.Globalization;
+using WAVE.Application.History;
 using WAVE.Domain.Testing;
 
 namespace WAVE.App.ViewModels;
@@ -9,6 +10,7 @@ public sealed class TestRunViewModel
     public TestRunViewModel(TestRun run)
     {
         Ssid = run.Ssid;
+        MediumText = HistoryReport.MediumText(run.Medium);
         StartedAt = run.StartedAt.LocalDateTime.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.CurrentCulture);
         Succeeded = run.Succeeded;
         ResultText = run.Succeeded ? "Sucesso" : $"Falha: {run.FailureReason}";
@@ -51,6 +53,9 @@ public sealed class TestRunViewModel
     }
 
     public string Ssid { get; }
+
+    /// <summary>Whether the run went over Wi-Fi or over the cable.</summary>
+    public string MediumText { get; }
 
     public string StartedAt { get; }
 

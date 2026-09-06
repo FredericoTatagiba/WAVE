@@ -9,6 +9,7 @@ public enum TestFailureReason
     MissingCredential,
     ProfileCreationFailed,
     AuthenticationFailed,
+    NoLink,
     DhcpTimeout,
     Unexpected
 }

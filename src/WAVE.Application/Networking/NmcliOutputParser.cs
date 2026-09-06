@@ -94,13 +94,23 @@ public static class NmcliOutputParser
     /// Asking nmcli rather than <c>NetworkInterface.NetworkInterfaceType</c> because .NET
     /// on Linux frequently reports a wlan adapter as <c>Ethernet</c>.
     /// </remarks>
-    public static string? ParseFirstWifiDevice(string standardOutput)
+    public static string? ParseFirstWifiDevice(string standardOutput) =>
+        ParseFirstDeviceOfType(standardOutput, "wifi");
+
+    /// <summary>
+    /// Parses <c>nmcli -t -f DEVICE,TYPE device status</c> and returns the first wired
+    /// interface name, or null when the machine has none.
+    /// </summary>
+    public static string? ParseFirstEthernetDevice(string standardOutput) =>
+        ParseFirstDeviceOfType(standardOutput, "ethernet");
+
+    private static string? ParseFirstDeviceOfType(string standardOutput, string type)
     {
         foreach (var line in SplitLines(standardOutput))
         {
             var fields = SplitFields(line);
             if (fields.Count >= 2 &&
-                fields[1].Trim().Equals("wifi", StringComparison.OrdinalIgnoreCase))
+                fields[1].Trim().Equals(type, StringComparison.OrdinalIgnoreCase))
             {
                 var device = fields[0].Trim();
                 if (device.Length > 0)

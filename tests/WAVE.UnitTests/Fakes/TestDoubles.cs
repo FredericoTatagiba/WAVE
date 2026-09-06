@@ -128,6 +128,22 @@ internal sealed class FakeDhcpValidator : IDhcpAddressValidator
         Task.FromResult(_hasLease);
 }
 
+internal sealed class FakeEthernetLinkProbe : IEthernetLinkProbe
+{
+    private readonly EthernetLink? _link;
+
+    public FakeEthernetLinkProbe(EthernetLink? link = null) => _link = link;
+
+    public static EthernetLink Ready() => new("eth0", "Realtek GbE", IsUp: true, SpeedMbps: 1000, HasDhcpLease: true);
+
+    public static EthernetLink Unplugged() => new("eth0", "Realtek GbE", IsUp: false, SpeedMbps: 0, HasDhcpLease: false);
+
+    public static EthernetLink WithoutLease() => new("eth0", "Realtek GbE", IsUp: true, SpeedMbps: 1000, HasDhcpLease: false);
+
+    public Task<EthernetLink?> DetectAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(_link);
+}
+
 
 internal sealed class FakePingMonitor : IContinuousPingMonitor
 {

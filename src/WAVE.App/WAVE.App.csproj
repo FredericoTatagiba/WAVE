@@ -8,6 +8,9 @@
     <RuntimeIdentifiers>win-x64;win-arm64;linux-x64</RuntimeIdentifiers>
     <SatelliteResourceLanguages>en;pt-BR</SatelliteResourceLanguages>
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <!-- AVLN3001: windows are resolved from the DI container and their XAML is compiled,
+         so the runtime loader (which needs a parameterless constructor) is never used. -->
+    <NoWarn>$(NoWarn);AVLN3001</NoWarn>
     <ApplicationManifest Condition="$([MSBuild]::IsOSPlatform('Windows'))">app.manifest</ApplicationManifest>
   </PropertyGroup>
 

@@ -1,4 +1,4 @@
-# WAVE — Arquitetura
+﻿# WAVE — Arquitetura
 
 **WAVE** — *Wi-Fi Automated Validation Environment*. Ferramenta desktop para **homologação automatizada de conectividade Wi-Fi em tablets Windows**, conforme `especificacao_tecnica_wifi.pdf`.
 
@@ -41,7 +41,7 @@ WAVE.UnitTests  ──►  Application + Domain (lógica pura, sem SO) + os expo
 ## 3. Design patterns aplicados (sem overengineering)
 
 - **MVVM** — front desacoplado; `MainViewModel`, `NetworkButtonViewModel`, `TelemetryViewModel`, `HistoryViewModel`.
-- **State / máquina de estados** — `TestOperationState` (Idle → Connecting → TestRunning → Failed) dirigida pelo `WifiTestOrchestrator`, implementando a pseudológica da spec.
+- **State / máquina de estados** — `TestOperationState` (Idle → Connecting → TestRunning → Failed) dirigida pelo `ConnectivityTestOrchestrator`, implementando a pseudológica da spec.
 - **Strategy** — cada rotina de teste (ping visível, velocidade, streaming) atrás de uma interface, orquestradas de forma intercambiável.
 - **Repository** — `INetworkProfileRepository`, `ITestRunRepository` isolam a persistência.
 - **Factory** — `IWifiProfileFactory`/`WlanProfileXmlBuilder` monta o XML de perfil WLAN.
@@ -67,7 +67,7 @@ Atende a regra 4 de `RegrasPrimordiaisDeDesenvolvimento.md`. Gerenciar perfis e 
 |------|---------------|
 | Botões por SSID (min 60×60, touch) | `Controls/NetworkButton` + `NetworkButtonViewModel` |
 | Estados IDLE/CONNECTING/TEST_RUNNING/FAILED + cores | `TestOperationState` + `StateToBrushConverter` + estilos |
-| Bloqueio de reentrância | `WifiTestOrchestrator` rejeita run concorrente; ViewModel desabilita botões |
+| Bloqueio de reentrância | `ConnectivityTestOrchestrator` rejeita run concorrente; ViewModel desabilita botões |
 | Criar perfil se não existir | `WlanProfileXmlBuilder` + `NetshWifiConnector.EnsureProfileAsync` |
 | Conectar ao SO | `NetshWifiConnector` (`netsh wlan connect`) / `NmcliWifiConnector` (`nmcli connection up`) |
 | Timeout DHCP 15s | `NetworkInterfaceDhcpValidator` + `TestRunnerOptions.DhcpTimeout` |

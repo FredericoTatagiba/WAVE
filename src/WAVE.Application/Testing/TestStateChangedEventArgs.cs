@@ -7,19 +7,24 @@ public sealed class TestStateChangedEventArgs : EventArgs
 {
     public TestStateChangedEventArgs(
         TestOperationState state,
-        string? ssid,
+        string? target,
+        TestMedium medium = TestMedium.WiFi,
         TestFailureReason failureReason = TestFailureReason.None,
         string message = "")
     {
         State = state;
-        Ssid = ssid;
+        Target = target;
+        Medium = medium;
         FailureReason = failureReason;
         Message = message;
     }
 
     public TestOperationState State { get; }
 
-    public string? Ssid { get; }
+    /// <summary>SSID being tested, or the wired adapter name; null once idle.</summary>
+    public string? Target { get; }
+
+    public TestMedium Medium { get; }
 
     public TestFailureReason FailureReason { get; }
 

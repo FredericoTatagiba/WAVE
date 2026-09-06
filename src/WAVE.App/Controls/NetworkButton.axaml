@@ -8,7 +8,7 @@
             Margin="6">
         <StackPanel>
             <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="16" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding Ssid}" FontSize="12" Opacity="0.85" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding Subtitle}" FontSize="12" Opacity="0.85" TextTrimming="CharacterEllipsis" />
             <TextBlock Text="{Binding Info}" FontSize="11" Opacity="0.7" TextWrapping="Wrap" />
 
             <!-- Marks which button the operator is waiting on. The colour alone says

@@ -9,7 +9,7 @@ using Xunit;
 
 namespace WAVE.UnitTests;
 
-public class WifiTestOrchestratorTests
+public class ConnectivityTestOrchestratorTests
 {
     private static WifiNetworkProfile OpenProfile() => new("RedeAberta", "Rede Aberta", SecurityType.Open);
 
@@ -23,7 +23,7 @@ public class WifiTestOrchestratorTests
         StreamingTargetMbps = 8
     };
 
-    private static WifiTestOrchestrator Build(
+    private static ConnectivityTestOrchestrator Build(
         FakeAuthorizationService authorization,
         FakeWifiConnector connector,
         FakeDhcpValidator dhcp,
@@ -33,7 +33,8 @@ public class WifiTestOrchestratorTests
         TestRunnerOptions options,
         FakeWifiProfileCatalog? catalog = null,
         FakeSpeedMeter? speedMeter = null,
-        FakeStreamingProbe? streamingProbe = null) =>
+        FakeStreamingProbe? streamingProbe = null,
+        FakeEthernetLinkProbe? ethernet = null) =>
         new(
             authorization,
             new CurrentUserContext(),
@@ -41,6 +42,7 @@ public class WifiTestOrchestratorTests
             connector,
             catalog ?? new FakeWifiProfileCatalog(),
             dhcp,
+            ethernet ?? new FakeEthernetLinkProbe(),
             pingMonitor,
             speedMeter ?? new FakeSpeedMeter(),
             streamingProbe ?? new FakeStreamingProbe(),
@@ -50,7 +52,7 @@ public class WifiTestOrchestratorTests
             options);
 
     [Fact]
-    public async Task RunTest_WhenUnauthorized_FailsAndStaysIdle()
+    public async Task RunWifiTest_WhenUnauthorized_FailsAndStaysIdle()
     {
         var orchestrator = Build(
             new FakeAuthorizationService(allow: false),
@@ -61,14 +63,14 @@ public class WifiTestOrchestratorTests
             new AdvancingClock(TimeSpan.Zero),
             FastOptions());
 
-        var result = await orchestrator.RunTestAsync(OpenProfile());
+        var result = await orchestrator.RunWifiTestAsync(OpenProfile());
 
         Assert.True(result.IsFailure);
         Assert.Equal(TestOperationState.Idle, orchestrator.CurrentState);
     }
 
     [Fact]
-    public async Task RunTest_HappyPath_ReachesTestRunningAndMeasures()
+    public async Task RunWifiTest_HappyPath_ReachesTestRunningAndMeasures()
     {
         var pingMonitor = new FakePingMonitor();
         var speedMeter = new FakeSpeedMeter();
@@ -86,7 +88,7 @@ public class WifiTestOrchestratorTests
             speedMeter: speedMeter,
             streamingProbe: streamingProbe);
 
-        var result = await orchestrator.RunTestAsync(OpenProfile());
+        var result = await orchestrator.RunWifiTestAsync(OpenProfile());
 
         Assert.True(result.IsSuccess);
         Assert.Equal(TestOperationState.TestRunning, orchestrator.CurrentState);
@@ -116,10 +118,11 @@ public class WifiTestOrchestratorTests
             speedMeter: speedMeter,
             streamingProbe: streamingProbe);
 
-        await orchestrator.RunTestAsync(OpenProfile());
+        await orchestrator.RunWifiTestAsync(OpenProfile());
         await orchestrator.StopAsync();
 
         var run = Assert.Single(history.Added);
+        Assert.Equal(TestMedium.WiFi, run.Medium);
         Assert.NotNull(run.Speed);
         Assert.Equal(150, run.Speed!.Value.DownloadMbps);
         Assert.Equal(40, run.Speed!.Value.UploadMbps);
@@ -129,7 +132,7 @@ public class WifiTestOrchestratorTests
     }
 
     [Fact]
-    public async Task RunTest_WhenDhcpTimesOut_FailsAndRecordsHistory()
+    public async Task RunWifiTest_WhenDhcpTimesOut_FailsAndRecordsHistory()
     {
         var history = new FakeTestRunRepository();
 
@@ -142,7 +145,7 @@ public class WifiTestOrchestratorTests
             new AdvancingClock(TimeSpan.FromSeconds(30)),
             FastOptions());
 
-        var result = await orchestrator.RunTestAsync(OpenProfile());
+        var result = await orchestrator.RunWifiTestAsync(OpenProfile());
 
         Assert.True(result.IsFailure);
         Assert.Equal(TestOperationState.Failed, orchestrator.CurrentState);
@@ -151,7 +154,7 @@ public class WifiTestOrchestratorTests
     }
 
     [Fact]
-    public async Task RunTest_WhenConnectionFails_ReportsAuthenticationFailure()
+    public async Task RunWifiTest_WhenConnectionFails_ReportsAuthenticationFailure()
     {
         var history = new FakeTestRunRepository();
         var connector = new FakeWifiConnector { ConnectResult = Result.Failure("sem sinal") };
@@ -165,7 +168,7 @@ public class WifiTestOrchestratorTests
             new AdvancingClock(TimeSpan.Zero),
             FastOptions());
 
-        var result = await orchestrator.RunTestAsync(OpenProfile());
+        var result = await orchestrator.RunWifiTestAsync(OpenProfile());
 
         Assert.True(result.IsFailure);
         Assert.Equal(TestOperationState.Failed, orchestrator.CurrentState);
@@ -174,7 +177,7 @@ public class WifiTestOrchestratorTests
     }
 
     [Fact]
-    public async Task RunTest_WhenNewProfileFailsToConfirm_RollsBackProfileAndUsesProvidedSecret()
+    public async Task RunWifiTest_WhenNewProfileFailsToConfirm_RollsBackProfileAndUsesProvidedSecret()
     {
         // A protected network unknown to Windows: the operator's password is used only
         // for this run. When the connection is not confirmed (DHCP never leases, e.g. a
@@ -193,7 +196,7 @@ public class WifiTestOrchestratorTests
             FastOptions(),
             new FakeWifiProfileCatalog(exists: false));
 
-        var result = await orchestrator.RunTestAsync(ProtectedProfile(), providedSecret);
+        var result = await orchestrator.RunWifiTestAsync(ProtectedProfile(), providedSecret);
 
         Assert.True(result.IsFailure);
         Assert.Equal(providedSecret, connector.EnsuredSecret);
@@ -201,7 +204,7 @@ public class WifiTestOrchestratorTests
     }
 
     [Fact]
-    public async Task RunTest_WhenKnownProfileFails_DoesNotRollBackProfile()
+    public async Task RunWifiTest_WhenKnownProfileFails_DoesNotRollBackProfile()
     {
         // Windows already knows the profile (pre-existing / admin-registered): WAVE did
         // not create it this run, so a transient failure must NOT delete it.
@@ -217,14 +220,14 @@ public class WifiTestOrchestratorTests
             FastOptions(),
             new FakeWifiProfileCatalog(exists: true));
 
-        var result = await orchestrator.RunTestAsync(ProtectedProfile());
+        var result = await orchestrator.RunWifiTestAsync(ProtectedProfile());
 
         Assert.True(result.IsFailure);
         Assert.Empty(connector.RemovedProfiles);
     }
 
     [Fact]
-    public async Task RunTest_WhenNewProfileSucceeds_KeepsProfileAndDoesNotSelfPersist()
+    public async Task RunWifiTest_WhenNewProfileSucceeds_KeepsProfileAndDoesNotSelfPersist()
     {
         // On a confirmed success the created profile is kept (no rollback). Persisting
         // the credential is the caller's job; the orchestrator never writes it itself.
@@ -232,13 +235,14 @@ public class WifiTestOrchestratorTests
         var credentialStore = new FakeCredentialStore();
         var providedSecret = new WifiSecret("right-password");
 
-        var orchestrator = new WifiTestOrchestrator(
+        var orchestrator = new ConnectivityTestOrchestrator(
             new FakeAuthorizationService(allow: true),
             new CurrentUserContext(),
             credentialStore,
             connector,
             new FakeWifiProfileCatalog(exists: false),
             new FakeDhcpValidator(true),
+            new FakeEthernetLinkProbe(),
             new FakePingMonitor(),
             new FakeSpeedMeter(),
             new FakeStreamingProbe(),
@@ -247,7 +251,7 @@ public class WifiTestOrchestratorTests
             new NullLogger(),
             FastOptions());
 
-        var result = await orchestrator.RunTestAsync(ProtectedProfile(), providedSecret);
+        var result = await orchestrator.RunWifiTestAsync(ProtectedProfile(), providedSecret);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(providedSecret, connector.EnsuredSecret);
@@ -256,7 +260,7 @@ public class WifiTestOrchestratorTests
     }
 
     [Fact]
-    public async Task RunTest_WhenWindowsKnowsProfile_SkipsCredentialAndSucceeds()
+    public async Task RunWifiTest_WhenWindowsKnowsProfile_SkipsCredentialAndSucceeds()
     {
         var profile = new WifiNetworkProfile("Corporativa", "Corporativa", SecurityType.Wpa2Personal);
 
@@ -270,9 +274,121 @@ public class WifiTestOrchestratorTests
             FastOptions(),
             new FakeWifiProfileCatalog(exists: true));
 
-        var result = await orchestrator.RunTestAsync(profile);
+        var result = await orchestrator.RunWifiTestAsync(profile);
 
         Assert.True(result.IsSuccess);
+        Assert.Equal(TestOperationState.TestRunning, orchestrator.CurrentState);
+    }
+
+    [Fact]
+    public async Task RunWiredTest_HappyPath_MeasuresWithoutTouchingWifi()
+    {
+        // The cable path must never create a profile or associate: doing so would leave
+        // Windows connected to a network the operator did not ask for.
+        var connector = new FakeWifiConnector();
+        var history = new FakeTestRunRepository();
+
+        var orchestrator = Build(
+            new FakeAuthorizationService(allow: true),
+            connector,
+            new FakeDhcpValidator(false),
+            new FakePingMonitor(),
+            history,
+            new AdvancingClock(TimeSpan.Zero),
+            FastOptions(),
+            ethernet: new FakeEthernetLinkProbe(FakeEthernetLinkProbe.Ready()));
+
+        var result = await orchestrator.RunWiredTestAsync();
+        await orchestrator.StopAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.False(connector.Connected);
+        var run = Assert.Single(history.Added);
+        Assert.Equal(TestMedium.Ethernet, run.Medium);
+        Assert.Equal("eth0", run.Ssid);
+    }
+
+    [Fact]
+    public async Task RunWiredTest_WhenCableUnplugged_FailsWithNoLink()
+    {
+        var history = new FakeTestRunRepository();
+
+        var orchestrator = Build(
+            new FakeAuthorizationService(allow: true),
+            new FakeWifiConnector(),
+            new FakeDhcpValidator(true),
+            new FakePingMonitor(),
+            history,
+            new AdvancingClock(TimeSpan.Zero),
+            FastOptions(),
+            ethernet: new FakeEthernetLinkProbe(FakeEthernetLinkProbe.Unplugged()));
+
+        var result = await orchestrator.RunWiredTestAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(TestOperationState.Failed, orchestrator.CurrentState);
+        Assert.Equal(TestFailureReason.NoLink, Assert.Single(history.Added).FailureReason);
+    }
+
+    [Fact]
+    public async Task RunWiredTest_WhenNoAdapter_FailsWithNoLink()
+    {
+        var orchestrator = Build(
+            new FakeAuthorizationService(allow: true),
+            new FakeWifiConnector(),
+            new FakeDhcpValidator(true),
+            new FakePingMonitor(),
+            new FakeTestRunRepository(),
+            new AdvancingClock(TimeSpan.Zero),
+            FastOptions(),
+            ethernet: new FakeEthernetLinkProbe());
+
+        var result = await orchestrator.RunWiredTestAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(TestOperationState.Failed, orchestrator.CurrentState);
+    }
+
+    [Fact]
+    public async Task RunWiredTest_WhenLinkHasNoAddress_TimesOutOnDhcp()
+    {
+        // A live link with no lease is the classic "switch port with no DHCP" case: the
+        // wired path must not confirm it just because the cable is in.
+        var history = new FakeTestRunRepository();
+
+        var orchestrator = Build(
+            new FakeAuthorizationService(allow: true),
+            new FakeWifiConnector(),
+            new FakeDhcpValidator(true),
+            new FakePingMonitor(),
+            history,
+            new AdvancingClock(TimeSpan.FromSeconds(30)),
+            FastOptions(),
+            ethernet: new FakeEthernetLinkProbe(FakeEthernetLinkProbe.WithoutLease()));
+
+        var result = await orchestrator.RunWiredTestAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(TestFailureReason.DhcpTimeout, Assert.Single(history.Added).FailureReason);
+    }
+
+    [Fact]
+    public async Task RunWiredTest_WhileWifiTestRuns_IsRejected()
+    {
+        var orchestrator = Build(
+            new FakeAuthorizationService(allow: true),
+            new FakeWifiConnector(),
+            new FakeDhcpValidator(true),
+            new FakePingMonitor(),
+            new FakeTestRunRepository(),
+            new AdvancingClock(TimeSpan.Zero),
+            FastOptions(),
+            ethernet: new FakeEthernetLinkProbe(FakeEthernetLinkProbe.Ready()));
+
+        await orchestrator.RunWifiTestAsync(OpenProfile());
+        var result = await orchestrator.RunWiredTestAsync();
+
+        Assert.True(result.IsFailure);
         Assert.Equal(TestOperationState.TestRunning, orchestrator.CurrentState);
     }
 }

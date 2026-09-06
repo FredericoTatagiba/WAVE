@@ -19,9 +19,10 @@ namespace WAVE.App.ViewModels;
 /// <summary>Main ViewModel: coordinates the network list, telemetry and history.</summary>
 public sealed class MainViewModel : ObservableObject
 {
-    private readonly IWifiTestOrchestrator _orchestrator;
+    private readonly IConnectivityTestOrchestrator _orchestrator;
     private readonly NetworkProfileService _profiles;
     private readonly NetworkDiscoveryService _discovery;
+    private readonly IEthernetLinkProbe _ethernet;
     private readonly TestHistoryService _history;
     private readonly ICurrentUserContext _currentUser;
     private readonly IUserAlerts _alerts;
@@ -40,11 +41,13 @@ public sealed class MainViewModel : ObservableObject
     private DateTime? _filterFrom;
     private DateTime? _filterTo;
     private string _filterSsid = string.Empty;
+    private WiredButtonViewModel _wired;
 
     public MainViewModel(
-        IWifiTestOrchestrator orchestrator,
+        IConnectivityTestOrchestrator orchestrator,
         NetworkProfileService profiles,
         NetworkDiscoveryService discovery,
+        IEthernetLinkProbe ethernet,
         TestHistoryService history,
         ICurrentUserContext currentUser,
         IUserAlerts alerts,
@@ -58,6 +61,7 @@ public sealed class MainViewModel : ObservableObject
         _orchestrator = orchestrator;
         _profiles = profiles;
         _discovery = discovery;
+        _ethernet = ethernet;
         _history = history;
         _currentUser = currentUser;
         _alerts = alerts;
@@ -69,6 +73,7 @@ public sealed class MainViewModel : ObservableObject
         _exportDialog = exportDialog;
 
         Telemetry = new TelemetryViewModel();
+        _wired = new WiredButtonViewModel(null, RunWiredAsync);
 
         StopCommand = new AsyncRelayCommand(
             StopAsync,
@@ -84,6 +89,16 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public ObservableCollection<NetworkButtonViewModel> Networks { get; } = new();
+
+    /// <summary>
+    /// The wired target. Replaced on every scan rather than mutated: its labels describe
+    /// a link snapshot, so a new snapshot is a new button.
+    /// </summary>
+    public WiredButtonViewModel Wired
+    {
+        get => _wired;
+        private set => SetProperty(ref _wired, value);
+    }
 
     public ObservableCollection<TestRunViewModel> History { get; } = new();
 
@@ -251,19 +266,17 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private async Task RunNetworkAsync(NetworkButtonViewModel button)
+    private async Task RunNetworkAsync(WifiNetworkProfile profile, bool readyToConnect)
     {
         StatusMessage = string.Empty;
         try
         {
-            var profile = button.Profile;
-
             // Protected network still unknown to the system: ask for the password once.
             // The credential is kept in memory only and is remembered *after* a confirmed
             // successful connection (see below), never before. Networks already ready
             // (open, saved in Windows or registered) go straight through.
             WifiSecret? transientSecret = null;
-            if (profile.RequiresCredential && !button.ReadyToConnect)
+            if (profile.RequiresCredential && !readyToConnect)
             {
                 var prompt = await PromptForCredentialAsync(profile).ConfigureAwait(false);
                 if (prompt.Cancelled)
@@ -274,7 +287,7 @@ public sealed class MainViewModel : ObservableObject
                 transientSecret = prompt.Secret;
             }
 
-            var result = await _orchestrator.RunTestAsync(profile, transientSecret).ConfigureAwait(false);
+            var result = await _orchestrator.RunWifiTestAsync(profile, transientSecret).ConfigureAwait(false);
             if (result.IsSuccess)
             {
                 await RememberOnSuccessAsync(profile, transientSecret).ConfigureAwait(false);
@@ -282,8 +295,7 @@ public sealed class MainViewModel : ObservableObject
             else
             {
                 // Nothing was persisted, so the next tap will ask for the password again.
-                _alerts.Error(result.Error);
-                _orchestrator.AcknowledgeFailure();
+                ReportFailure(result.Error);
             }
 
             await LoadHistoryAsync().ConfigureAwait(false);
@@ -293,6 +305,37 @@ public sealed class MainViewModel : ObservableObject
             _logger.Error("Error while running the connectivity test.", exception);
             _alerts.Error("Erro inesperado ao executar o teste.");
         }
+    }
+
+    /// <summary>
+    /// Runs the cable test. No credential and no profile are involved, so the whole
+    /// Wi-Fi preamble is absent: the orchestrator confirms link and lease on its own.
+    /// </summary>
+    private async Task RunWiredAsync()
+    {
+        StatusMessage = string.Empty;
+        try
+        {
+            var result = await _orchestrator.RunWiredTestAsync().ConfigureAwait(false);
+            if (result.IsFailure)
+            {
+                ReportFailure(result.Error);
+            }
+
+            await LoadHistoryAsync().ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Error while running the wired connectivity test.", exception);
+            _alerts.Error("Erro inesperado ao executar o teste.");
+        }
+    }
+
+    /// <summary>Shows the failure and clears the Failed state so the next tap can start.</summary>
+    private void ReportFailure(string error)
+    {
+        _alerts.Error(error);
+        _orchestrator.AcknowledgeFailure();
     }
 
     /// <summary>Outcome of asking the operator for a network credential.</summary>
@@ -356,17 +399,23 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             var networks = await _discovery.DiscoverAsync().ConfigureAwait(false);
+            var link = await DetectWiredLinkAsync().ConfigureAwait(false);
+
             RunOnUi(() =>
             {
+                Wired = new WiredButtonViewModel(link, RunWiredAsync);
+
                 Networks.Clear();
                 foreach (var network in networks)
                 {
+                    var profile = network.Profile;
+                    var ready = network.ReadyToConnect;
                     Networks.Add(new NetworkButtonViewModel(
-                        network.Profile, BuildInfo(network), network.ReadyToConnect, RunNetworkAsync));
+                        profile, BuildInfo(network), ready, () => RunNetworkAsync(profile, ready)));
                 }
 
                 StatusMessage = Networks.Count == 0
-                    ? "Nenhuma rede encontrada. Clique em 'Buscar redes' ou aproxime-se de um ponto de acesso."
+                    ? "Nenhuma rede Wi-Fi encontrada. Clique em 'Buscar redes' ou aproxime-se de um ponto de acesso."
                     : string.Empty;
             });
         }
@@ -374,6 +423,23 @@ public sealed class MainViewModel : ObservableObject
         {
             _logger.Error("Failed to discover networks.", exception);
             _alerts.Error("Falha ao buscar as redes.");
+        }
+    }
+
+    /// <summary>
+    /// Reads the wired adapter alongside the Wi-Fi scan. A failure here must not take the
+    /// network list down with it: the cable button simply reports no adapter.
+    /// </summary>
+    private async Task<EthernetLink?> DetectWiredLinkAsync()
+    {
+        try
+        {
+            return await _ethernet.DetectAsync().ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to detect the wired adapter.", exception);
+            return null;
         }
     }
 
@@ -489,24 +555,41 @@ public sealed class MainViewModel : ObservableObject
         // test is running after the operator stopped it.
         StatusMessage = !string.IsNullOrEmpty(e.Message)
             ? e.Message
-            : ProgressMessage(e.State, e.Ssid);
+            : ProgressMessage(e.State, e.Target, e.Medium);
 
-        foreach (var network in Networks)
+        foreach (var target in Targets())
         {
-            var isActive = string.Equals(network.Ssid, e.Ssid, StringComparison.OrdinalIgnoreCase);
-            network.State = isActive ? e.State : TestOperationState.Idle;
-            network.IsEnabled = !IsBusy;
+            var isActive = !string.IsNullOrEmpty(e.Target)
+                && string.Equals(target.TargetKey, e.Target, StringComparison.OrdinalIgnoreCase);
+            target.State = isActive ? e.State : TestOperationState.Idle;
+            target.IsEnabled = !IsBusy;
         }
     }
+
+    /// <summary>Every button that can start a test: the Wi-Fi networks plus the cable.</summary>
+    private IEnumerable<TestTargetButtonViewModel> Targets() =>
+        Networks.Cast<TestTargetButtonViewModel>().Append(Wired);
 
     /// <summary>
     /// Text describing the phase the test just entered. Empty for the states that are not
     /// progress (Idle, and Failed — which always arrives with its own reason), so the bar
     /// goes away instead of keeping a stale claim.
     /// </summary>
-    private static string ProgressMessage(TestOperationState state, string? ssid)
+    private static string ProgressMessage(TestOperationState state, string? target, TestMedium medium)
     {
-        var network = string.IsNullOrEmpty(ssid) ? "a rede" : $"'{ssid}'";
+        // The cable has nothing to associate with, so "connecting" is really "checking
+        // the link" — saying "conectando" there would misdescribe what WAVE is waiting on.
+        if (medium == TestMedium.Ethernet)
+        {
+            return state switch
+            {
+                TestOperationState.Connecting => "Verificando o link do cabo e aguardando endereço IP…",
+                TestOperationState.TestRunning => "Testando a rede cabeada: medindo latência, velocidade e streaming…",
+                _ => string.Empty
+            };
+        }
+
+        var network = string.IsNullOrEmpty(target) ? "a rede" : $"'{target}'";
 
         return state switch
         {

@@ -11,6 +11,7 @@ using WAVE.Application.Security;
 using WAVE.Application.Testing;
 using WAVE.Application.Users;
 using WAVE.Infrastructure.Diagnostics;
+using WAVE.Infrastructure.Ethernet;
 using WAVE.Infrastructure.Export;
 using WAVE.Infrastructure.Logging;
 using WAVE.Infrastructure.Persistence;
@@ -43,7 +44,7 @@ public static class ServiceRegistration
         services.AddSingleton<AuthenticationService>();
         services.AddSingleton<UserManagementService>();
         services.AddSingleton<IWifiProfileXmlFactory, WlanProfileXmlBuilder>();
-        services.AddSingleton<IWifiTestOrchestrator, WifiTestOrchestrator>();
+        services.AddSingleton<IConnectivityTestOrchestrator, ConnectivityTestOrchestrator>();
         services.AddSingleton<NetworkProfileService>();
         services.AddSingleton<TestHistoryService>();
         services.AddSingleton<HistoryExportService>();
@@ -56,6 +57,7 @@ public static class ServiceRegistration
         services.AddSingleton<IAppLogger, FileAppLogger>();
         AddPlatformServices(services);
         services.AddSingleton<IDhcpAddressValidator, NetworkInterfaceDhcpValidator>();
+        services.AddSingleton<IEthernetLinkProbe, NetworkInterfaceEthernetProbe>();
         services.AddSingleton<IContinuousPingMonitor, ContinuousPingMonitor>();
         services.AddSingleton<ISpeedMeter, HttpSpeedMeter>();
         services.AddSingleton<IStreamingProbe, HttpStreamingProbe>();

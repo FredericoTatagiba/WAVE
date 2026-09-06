@@ -12,14 +12,24 @@ namespace WAVE.Application.Testing;
 /// termination, profile creation, connection, DHCP validation, firing the validation
 /// routines and recording history. Each step is isolated in its own method.
 /// </summary>
-public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
+/// <remarks>
+/// Wi-Fi and Ethernet differ only in how the link is established: Wi-Fi has to create a
+/// profile and associate, the cable only has to be plugged in. Everything after the lease
+/// — ping, throughput, streaming, history — is shared, so both paths converge on
+/// <see cref="StartValidationRoutinesAsync"/>.
+/// </remarks>
+public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
 {
+    /// <summary>Label recorded when no wired adapter was found at all.</summary>
+    private const string UnknownWiredTarget = "Cabo de rede";
+
     private readonly IAuthorizationService _authorization;
     private readonly ICurrentUserContext _currentUser;
     private readonly ICredentialStore _credentials;
     private readonly IWifiConnector _connector;
     private readonly IWifiProfileCatalog _catalog;
     private readonly IDhcpAddressValidator _dhcp;
+    private readonly IEthernetLinkProbe _ethernet;
     private readonly IContinuousPingMonitor _pingMonitor;
     private readonly ISpeedMeter _speedMeter;
     private readonly IStreamingProbe _streamingProbe;
@@ -35,18 +45,20 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
     private bool _profileCreatedThisRun;
     private Guid _runId;
     private DateTimeOffset _startedAt;
-    private string _ssid = string.Empty;
+    private string _target = string.Empty;
+    private TestMedium _medium = TestMedium.WiFi;
     private string _operatorName = string.Empty;
     private SpeedResult? _speed;
     private StreamingObservation? _streaming;
 
-    public WifiTestOrchestrator(
+    public ConnectivityTestOrchestrator(
         IAuthorizationService authorization,
         ICurrentUserContext currentUser,
         ICredentialStore credentials,
         IWifiConnector connector,
         IWifiProfileCatalog catalog,
         IDhcpAddressValidator dhcp,
+        IEthernetLinkProbe ethernet,
         IContinuousPingMonitor pingMonitor,
         ISpeedMeter speedMeter,
         IStreamingProbe streamingProbe,
@@ -61,6 +73,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         _connector = connector;
         _catalog = catalog;
         _dhcp = dhcp;
+        _ethernet = ethernet;
         _pingMonitor = pingMonitor;
         _speedMeter = speedMeter;
         _streamingProbe = streamingProbe;
@@ -74,7 +87,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
 
     public TestOperationState CurrentState { get; private set; } = TestOperationState.Idle;
 
-    public string? ActiveSsid { get; private set; }
+    public string? ActiveTarget { get; private set; }
 
     public event EventHandler<TestStateChangedEventArgs>? StateChanged;
 
@@ -82,27 +95,22 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
 
     public event EventHandler<SpeedSample>? SpeedSampled;
 
-    public async Task<Result> RunTestAsync(
+    public async Task<Result> RunWifiTestAsync(
         WifiNetworkProfile profile,
         WifiSecret? providedSecret = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        var authorization = _authorization.Authorize(Permission.RunTest);
-        if (authorization.IsFailure)
+        var start = TryStart();
+        if (start.IsFailure)
         {
-            return authorization;
-        }
-
-        if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
-        {
-            return Result.Failure("Já existe um teste em execução.");
+            return start;
         }
 
         try
         {
-            BeginSession(profile);
+            BeginSession(profile.Ssid, TestMedium.WiFi);
             SetState(TestOperationState.Connecting, profile.Ssid);
 
             // Reuses the profile Windows already has saved: in those cases there is no
@@ -140,7 +148,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
 
             await Task.Delay(_options.StabilizationDelay, cancellationToken).ConfigureAwait(false);
 
-            if (!await WaitForDhcpAsync(cancellationToken).ConfigureAwait(false))
+            if (!await WaitForLeaseAsync(_dhcp.HasValidLeaseAsync, cancellationToken).ConfigureAwait(false))
             {
                 return await FailAsync(TestFailureReason.DhcpTimeout,
                     "Timeout ao obter endereço IP via DHCP.").ConfigureAwait(false);
@@ -157,6 +165,55 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         catch (Exception exception)
         {
             _logger.Error("Unexpected failure during the connectivity test.", exception);
+            return await FailAsync(TestFailureReason.Unexpected,
+                "Erro inesperado ao executar o teste.").ConfigureAwait(false);
+        }
+    }
+
+    public async Task<Result> RunWiredTestAsync(CancellationToken cancellationToken = default)
+    {
+        var start = TryStart();
+        if (start.IsFailure)
+        {
+            return start;
+        }
+
+        try
+        {
+            var link = await _ethernet.DetectAsync(cancellationToken).ConfigureAwait(false);
+
+            BeginSession(link?.InterfaceName ?? UnknownWiredTarget, TestMedium.Ethernet);
+            SetState(TestOperationState.Connecting, _target);
+
+            if (link is null)
+            {
+                return await FailAsync(TestFailureReason.NoLink,
+                    "Nenhum adaptador de rede cabeada foi encontrado nesta máquina.").ConfigureAwait(false);
+            }
+
+            if (!link.IsUp)
+            {
+                return await FailAsync(TestFailureReason.NoLink,
+                    $"Sem link em '{link.Description}'. Verifique se o cabo está conectado.").ConfigureAwait(false);
+            }
+
+            if (!await WaitForLeaseAsync(WiredHasLeaseAsync, cancellationToken).ConfigureAwait(false))
+            {
+                return await FailAsync(TestFailureReason.DhcpTimeout,
+                    "Timeout ao obter endereço IP via DHCP na rede cabeada.").ConfigureAwait(false);
+            }
+
+            await StartValidationRoutinesAsync(_target, cancellationToken).ConfigureAwait(false);
+            return Result.Success();
+        }
+        catch (OperationCanceledException)
+        {
+            await ResetToIdleAsync().ConfigureAwait(false);
+            return Result.Failure("Operação cancelada.");
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Unexpected failure during the wired connectivity test.", exception);
             return await FailAsync(TestFailureReason.Unexpected,
                 "Erro inesperado ao executar o teste.").ConfigureAwait(false);
         }
@@ -183,9 +240,26 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         }
     }
 
-    private async Task StartValidationRoutinesAsync(string ssid, CancellationToken cancellationToken)
+    /// <summary>
+    /// Claims the single-run slot after checking the caller may run tests at all. Both
+    /// entry points share it so a wired test cannot start on top of a Wi-Fi one.
+    /// </summary>
+    private Result TryStart()
     {
-        SetState(TestOperationState.TestRunning, ssid);
+        var authorization = _authorization.Authorize(Permission.RunTest);
+        if (authorization.IsFailure)
+        {
+            return authorization;
+        }
+
+        return Interlocked.CompareExchange(ref _running, 1, 0) != 0
+            ? Result.Failure("Já existe um teste em execução.")
+            : Result.Success();
+    }
+
+    private async Task StartValidationRoutinesAsync(string target, CancellationToken cancellationToken)
+    {
+        SetState(TestOperationState.TestRunning, target);
 
         _pingMonitor.Start(_options.PingTargetHost);
 
@@ -234,13 +308,24 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         return await _credentials.GetAsync(profile.Ssid, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<bool> WaitForDhcpAsync(CancellationToken cancellationToken)
+    private async Task<bool> WiredHasLeaseAsync(CancellationToken cancellationToken)
+    {
+        var link = await _ethernet.DetectAsync(cancellationToken).ConfigureAwait(false);
+        return link is { IsUp: true, HasDhcpLease: true };
+    }
+
+    /// <summary>
+    /// Polls until the medium reports a usable address or the DHCP budget runs out. The
+    /// final check after the deadline keeps a lease that landed during the last sleep.
+    /// </summary>
+    private async Task<bool> WaitForLeaseAsync(
+        Func<CancellationToken, Task<bool>> hasLease, CancellationToken cancellationToken)
     {
         var deadline = _clock.Now + _options.DhcpTimeout;
 
         while (_clock.Now < deadline)
         {
-            if (await _dhcp.HasValidLeaseAsync(cancellationToken).ConfigureAwait(false))
+            if (await hasLease(cancellationToken).ConfigureAwait(false))
             {
                 return true;
             }
@@ -248,7 +333,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
             await Task.Delay(_options.DhcpPollInterval, cancellationToken).ConfigureAwait(false);
         }
 
-        return await _dhcp.HasValidLeaseAsync(cancellationToken).ConfigureAwait(false);
+        return await hasLease(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<Result> FailAsync(TestFailureReason reason, string message)
@@ -257,7 +342,7 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         await RollbackProfileIfCreatedAsync().ConfigureAwait(false);
         await PersistRunAsync(TestOperationState.Failed, reason).ConfigureAwait(false);
         Interlocked.Exchange(ref _running, 0);
-        SetState(TestOperationState.Failed, _ssid, reason, message);
+        SetState(TestOperationState.Failed, _target, reason, message);
         return Result.Failure(message);
     }
 
@@ -277,11 +362,11 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
 
         try
         {
-            await _connector.RemoveProfileAsync(_ssid).ConfigureAwait(false);
+            await _connector.RemoveProfileAsync(_target).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
-            _logger.Warn($"Could not roll back the network profile '{_ssid}': {exception.Message}");
+            _logger.Warn($"Could not roll back the network profile '{_target}': {exception.Message}");
         }
     }
 
@@ -303,11 +388,12 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         PingSampled?.Invoke(this, sample);
     }
 
-    private void BeginSession(WifiNetworkProfile profile)
+    private void BeginSession(string target, TestMedium medium)
     {
         _runId = Guid.NewGuid();
         _startedAt = _clock.Now;
-        _ssid = profile.Ssid;
+        _target = target;
+        _medium = medium;
         _operatorName = _currentUser.UserName;
         _profileCreatedThisRun = false;
         _speed = null;
@@ -337,7 +423,8 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
         var run = new TestRun
         {
             Id = _runId,
-            Ssid = _ssid,
+            Ssid = _target,
+            Medium = _medium,
             OperatorName = _operatorName,
             StartedAt = _startedAt,
             FinishedAt = _clock.Now,
@@ -360,12 +447,12 @@ public sealed class WifiTestOrchestrator : IWifiTestOrchestrator
 
     private void SetState(
         TestOperationState state,
-        string? ssid,
+        string? target,
         TestFailureReason reason = TestFailureReason.None,
         string message = "")
     {
         CurrentState = state;
-        ActiveSsid = ssid;
-        StateChanged?.Invoke(this, new TestStateChangedEventArgs(state, ssid, reason, message));
+        ActiveTarget = target;
+        StateChanged?.Invoke(this, new TestStateChangedEventArgs(state, target, _medium, reason, message));
     }
 }

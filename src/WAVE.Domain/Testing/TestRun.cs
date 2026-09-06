@@ -8,7 +8,13 @@ public sealed record TestRun
 {
     public required Guid Id { get; init; }
 
+    /// <summary>SSID of the tested network, or the adapter name for a wired run.</summary>
     public required string Ssid { get; init; }
+
+    /// <summary>
+    /// Defaults to Wi-Fi so runs recorded before wired testing existed still deserialize.
+    /// </summary>
+    public TestMedium Medium { get; init; } = TestMedium.WiFi;
 
     public required string OperatorName { get; init; }
 

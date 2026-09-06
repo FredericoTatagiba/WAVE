@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ctrl="clr-namespace:WAVE.App.Controls"
         x:Class="WAVE.App.Views.MainWindow"
-        Title="WAVE — Homologação de Wi-Fi"
+        Title="WAVE — Homologação de rede"
         Height="800" Width="1200" MinHeight="480" MinWidth="480"
         Background="{StaticResource BrushBackground}"
         Foreground="{StaticResource BrushText}">
@@ -26,7 +26,7 @@
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="WAVE" FontSize="22" FontWeight="Bold" Foreground="{StaticResource BrushAccent}" />
-                    <TextBlock Text="Homologação de Wi-Fi" FontSize="13" Foreground="{StaticResource BrushMuted}"
+                    <TextBlock Text="Homologação de rede" FontSize="13" Foreground="{StaticResource BrushMuted}"
                                VerticalAlignment="Bottom" Margin="10,0,0,3" />
                 </StackPanel>
 
@@ -74,6 +74,17 @@
                         <!-- Network registration: its own component, visible only to the Administrator (RBAC) -->
                         <ctrl:AddNetworkPanel DockPanel.Dock="Bottom"
                                               IsVisible="{Binding IsAdministrator}" />
+
+                        <!-- The cable is a single fixed target, so it sits outside the
+                             scrolling Wi-Fi list and stays reachable however many access
+                             points are in range. -->
+                        <StackPanel DockPanel.Dock="Top">
+                            <TextBlock Text="Cabo de rede" Classes="section" />
+                            <ctrl:NetworkButton DataContext="{Binding Wired}"
+                                                Width="170" Height="100"
+                                                HorizontalAlignment="Left" />
+                            <TextBlock Text="Wi-Fi" Classes="section" Margin="6,10,0,2" />
+                        </StackPanel>
 
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding Networks}">
@@ -143,7 +154,7 @@
 
                             <ctrl:ResponsiveSplitView.SecondaryContent>
                                 <DockPanel Margin="3">
-                                    <TextBlock DockPanel.Dock="Top" Text="Velocidade Wi-Fi" Classes="heading" />
+                                    <TextBlock DockPanel.Dock="Top" Text="Velocidade" Classes="heading" />
                                     <ctrl:SpeedGauge DownloadMbps="{Binding Telemetry.DownloadMbps}"
                                                      UploadMbps="{Binding Telemetry.UploadMbps}"
                                                      PhaseText="{Binding Telemetry.SpeedPhaseText}" />
@@ -187,7 +198,11 @@
                                                 <Grid ColumnDefinitions="*,Auto">
                                                     <StackPanel Grid.Column="0">
                                                         <TextBlock Text="{Binding Ssid}" FontWeight="SemiBold" />
-                                                        <TextBlock Text="{Binding StartedAt}" Classes="muted" />
+                                                        <TextBlock Classes="muted">
+                                                            <Run Text="{Binding MediumText, Mode=OneWay}" />
+                                                            <Run Text="·" />
+                                                            <Run Text="{Binding StartedAt, Mode=OneWay}" />
+                                                        </TextBlock>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="1" HorizontalAlignment="Right">
                                                         <TextBlock Text="{Binding ResultText}" HorizontalAlignment="Right"

@@ -15,7 +15,8 @@ public static class HistoryReport
 {
     public static IReadOnlyList<HistoryColumn> Columns { get; } = new[]
     {
-        new HistoryColumn("SSID", run => run.Ssid),
+        new HistoryColumn("Rede", run => run.Ssid),
+        new HistoryColumn("Meio", run => MediumText(run.Medium)),
         new HistoryColumn("Operador", run => run.OperatorName),
         new HistoryColumn("Início", run => run.StartedAt),
         new HistoryColumn("Fim", run => run.FinishedAt),
@@ -30,6 +31,12 @@ public static class HistoryReport
         new HistoryColumn("Streaming", run => run.Streaming is { } streaming ? StreamingText(streaming.Stability) : null)
     };
 
+    public static string MediumText(TestMedium medium) => medium switch
+    {
+        TestMedium.Ethernet => "Cabo",
+        _ => "Wi-Fi"
+    };
+
     private static string FailureText(TestFailureReason reason) => reason switch
     {
         TestFailureReason.None => string.Empty,
@@ -38,6 +45,7 @@ public static class HistoryReport
         TestFailureReason.MissingCredential => "Credencial ausente",
         TestFailureReason.ProfileCreationFailed => "Falha ao criar perfil",
         TestFailureReason.AuthenticationFailed => "Falha de autenticação",
+        TestFailureReason.NoLink => "Sem link (cabo desconectado)",
         TestFailureReason.DhcpTimeout => "Timeout de DHCP",
         TestFailureReason.Unexpected => "Erro inesperado",
         _ => reason.ToString()

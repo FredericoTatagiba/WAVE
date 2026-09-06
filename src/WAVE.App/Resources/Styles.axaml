@@ -79,6 +79,14 @@
         <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
 
+    <!-- Group label inside a panel (e.g. "Cabo de rede" / "Wi-Fi"), lighter than a heading -->
+    <Style Selector="TextBlock.section">
+        <Setter Property="Foreground" Value="{StaticResource BrushMuted}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="6,0,0,2" />
+    </Style>
+
     <Style Selector="TextBlock.muted">
         <Setter Property="Foreground" Value="{StaticResource BrushMuted}" />
         <Setter Property="FontSize" Value="12" />
