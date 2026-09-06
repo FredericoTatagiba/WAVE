@@ -1,5 +1,6 @@
 using System.Net.NetworkInformation;
 using WAVE.Application.Abstractions;
+using WAVE.Application.Testing;
 using WAVE.Domain.Testing;
 
 namespace WAVE.Infrastructure.Diagnostics;
@@ -11,19 +12,20 @@ namespace WAVE.Infrastructure.Diagnostics;
 public sealed class ContinuousPingMonitor : IContinuousPingMonitor, IDisposable
 {
     private const int PingTimeoutMilliseconds = 4000;
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(1);
 
     private readonly IClock _clock;
     private readonly IAppLogger _logger;
+    private readonly TestRunnerOptions _options;
     private readonly object _gate = new();
 
     private CancellationTokenSource? _cancellation;
     private Task? _loop;
 
-    public ContinuousPingMonitor(IClock clock, IAppLogger logger)
+    public ContinuousPingMonitor(IClock clock, IAppLogger logger, TestRunnerOptions options)
     {
         _clock = clock;
         _logger = logger;
+        _options = options;
     }
 
     public event EventHandler<PingSample>? Sampled;
@@ -91,7 +93,7 @@ public sealed class ContinuousPingMonitor : IContinuousPingMonitor, IDisposable
 
             try
             {
-                await Task.Delay(Interval, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(_options.PingInterval, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

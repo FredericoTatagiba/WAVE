@@ -36,7 +36,31 @@ public sealed record TestRun
 
     public TestFailureReason FailureReason { get; init; } = TestFailureReason.None;
 
+    /// <summary>
+    /// Host that was pinged. Recorded because the operator can change it per test, and a
+    /// latency figure means nothing without knowing what answered it.
+    /// </summary>
+    public string PingTarget { get; init; } = string.Empty;
+
+    /// <summary>Whole run: the baseline window and the loaded window together.</summary>
     public PingStatistics Ping { get; init; } = PingStatistics.Empty;
+
+    /// <summary>Latency with the link at rest. Null for runs recorded before this split.</summary>
+    public PingStatistics? PingIdle { get; init; }
+
+    /// <summary>Latency while the throughput measurement saturated the link.</summary>
+    public PingStatistics? PingUnderLoad { get; init; }
+
+    /// <summary>
+    /// How much the latency grew once the link was saturated — bufferbloat. The single
+    /// most useful number for "will a call or a game survive someone downloading here":
+    /// a link can show a fine average and still add hundreds of milliseconds under load.
+    /// Null when a run has no baseline to compare against.
+    /// </summary>
+    public double? BufferbloatMs =>
+        PingIdle is { Received: > 0 } idle && PingUnderLoad is { Received: > 0 } load
+            ? load.AvgMs - idle.AvgMs
+            : null;
 
     public SpeedResult? Speed { get; init; }
 

@@ -28,9 +28,15 @@ public interface IConnectivityTestOrchestrator
     /// use during this test only; it must be remembered by the caller only after a
     /// confirmed success.
     /// </summary>
+    /// <param name="pingTarget">
+    /// Host to ping during this run; blank falls back to the configured default. It is
+    /// per-run because switching the target is a diagnostic move — comparing the gateway
+    /// against a public address separates "my link" from "upstream".
+    /// </param>
     Task<Result> RunWifiTestAsync(
         WifiNetworkProfile profile,
         WifiSecret? providedSecret = null,
+        string? pingTarget = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -38,7 +44,7 @@ public interface IConnectivityTestOrchestrator
     /// with and no credential involved: the test confirms the link and the DHCP lease,
     /// then fires the same ping, throughput and streaming routines as Wi-Fi.
     /// </summary>
-    Task<Result> RunWiredTestAsync(CancellationToken cancellationToken = default);
+    Task<Result> RunWiredTestAsync(string? pingTarget = null, CancellationToken cancellationToken = default);
 
     /// <summary>Stops the running test and returns to the idle state.</summary>
     Task StopAsync(CancellationToken cancellationToken = default);

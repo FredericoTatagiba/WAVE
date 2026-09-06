@@ -19,6 +19,7 @@ public class ConnectivityTestOrchestratorTests
         StabilizationDelay = TimeSpan.Zero,
         DhcpTimeout = TimeSpan.FromSeconds(1),
         DhcpPollInterval = TimeSpan.FromMilliseconds(1),
+        IdleBaselineDuration = TimeSpan.Zero,
         StreamingTargetMbps = 8
     };
 
@@ -251,6 +252,139 @@ public class ConnectivityTestOrchestratorTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(TestOperationState.TestRunning, orchestrator.CurrentState);
+    }
+
+    [Fact]
+    public async Task RunTest_PingsTheRequestedTargetAndRecordsIt()
+    {
+        // Recording it is the part that matters: without the target on the row, two runs
+        // with different targets look comparable and are not.
+        var pingMonitor = new FakePingMonitor();
+        var history = new FakeTestRunRepository();
+
+        var orchestrator = Build(
+            new FakeWifiConnector(),
+            new FakeDhcpValidator(true),
+            pingMonitor,
+            history,
+            new AdvancingClock(TimeSpan.Zero),
+            FastOptions());
+
+        await orchestrator.RunWifiTestAsync(OpenProfile(), pingTarget: " 192.168.0.1 ");
+        await orchestrator.StopAsync();
+
+        Assert.Equal("192.168.0.1", pingMonitor.Host);
+        Assert.Equal("192.168.0.1", Assert.Single(history.Added).PingTarget);
+    }
+
+    [Fact]
+    public async Task RunTest_WithoutATarget_FallsBackToTheConfiguredDefault()
+    {
+        var pingMonitor = new FakePingMonitor();
+        var history = new FakeTestRunRepository();
+        var options = FastOptions();
+
+        var orchestrator = Build(
+            new FakeWifiConnector(),
+            new FakeDhcpValidator(true),
+            pingMonitor,
+            history,
+            new AdvancingClock(TimeSpan.Zero),
+            options);
+
+        await orchestrator.RunWifiTestAsync(OpenProfile(), pingTarget: "   ");
+        await orchestrator.StopAsync();
+
+        Assert.Equal(options.PingTargetHost, pingMonitor.Host);
+        Assert.Equal(options.PingTargetHost, Assert.Single(history.Added).PingTarget);
+    }
+
+    [Fact]
+    public async Task RunWiredTest_UsesTheRequestedTarget()
+    {
+        var pingMonitor = new FakePingMonitor();
+
+        var orchestrator = Build(
+            new FakeWifiConnector(),
+            new FakeDhcpValidator(false),
+            pingMonitor,
+            new FakeTestRunRepository(),
+            new AdvancingClock(TimeSpan.Zero),
+            FastOptions(),
+            ethernet: new FakeEthernetLinkProbe(FakeEthernetLinkProbe.Ready()));
+
+        await orchestrator.RunWiredTestAsync("1.1.1.1");
+
+        Assert.Equal("1.1.1.1", pingMonitor.Host);
+    }
+
+    [Fact]
+    public async Task RunTest_SplitsLatencyIntoIdleAndUnderLoad()
+    {
+        // The whole point of the split: a link that answers in 20 ms at rest and 260 ms
+        // while saturated is a link where a call drops the moment someone downloads
+        // something. One blended average would hide that completely.
+        var pingMonitor = new FakePingMonitor();
+        pingMonitor.EmitOnStart.Add(PingSample.Reply(DateTimeOffset.UnixEpoch, 20));
+        pingMonitor.EmitOnStart.Add(PingSample.Reply(DateTimeOffset.UnixEpoch, 20));
+
+        var speedMeter = new FakeSpeedMeter
+        {
+            DuringMeasure = () =>
+            {
+                pingMonitor.Emit(PingSample.Reply(DateTimeOffset.UnixEpoch, 250));
+                pingMonitor.Emit(PingSample.Reply(DateTimeOffset.UnixEpoch, 270));
+            }
+        };
+
+        var history = new FakeTestRunRepository();
+
+        var orchestrator = Build(
+            new FakeWifiConnector(),
+            new FakeDhcpValidator(true),
+            pingMonitor,
+            history,
+            new AdvancingClock(TimeSpan.Zero),
+            FastOptions(),
+            speedMeter: speedMeter);
+
+        await orchestrator.RunWifiTestAsync(OpenProfile());
+        await orchestrator.StopAsync();
+
+        var run = Assert.Single(history.Added);
+        Assert.Equal(20, run.PingIdle!.AvgMs);
+        Assert.Equal(260, run.PingUnderLoad!.AvgMs);
+        Assert.Equal(240, run.BufferbloatMs);
+
+        // The overall figure still covers every sample, so nothing is lost by the split.
+        Assert.Equal(4, run.Ping.Sent);
+        Assert.Equal(140, run.Ping.AvgMs);
+    }
+
+    [Fact]
+    public async Task RunTest_WithoutLoadSamples_LeavesBufferbloatUnknown()
+    {
+        // No reading taken under saturation means there is nothing to compare against,
+        // and reporting a delta anyway would be inventing one.
+        var pingMonitor = new FakePingMonitor();
+        pingMonitor.EmitOnStart.Add(PingSample.Reply(DateTimeOffset.UnixEpoch, 15));
+        var history = new FakeTestRunRepository();
+
+        var orchestrator = Build(
+            new FakeWifiConnector(),
+            new FakeDhcpValidator(true),
+            pingMonitor,
+            history,
+            new AdvancingClock(TimeSpan.Zero),
+            FastOptions());
+
+        await orchestrator.RunWifiTestAsync(OpenProfile());
+        await orchestrator.StopAsync();
+
+        var run = Assert.Single(history.Added);
+        Assert.NotNull(run.PingIdle);
+        Assert.Null(run.PingUnderLoad);
+        Assert.Null(run.BufferbloatMs);
     }
 
     [Fact]

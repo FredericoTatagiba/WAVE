@@ -60,6 +60,95 @@ public class PingStatisticsCalculatorTests
     }
 
     [Fact]
+    public void Jitter_SeparatesSteadyFromSwingingLinks()
+    {
+        // The point of the metric: identical average, opposite behaviour. A game or a call
+        // rides the steady one fine and stutters on the other.
+        var steady = new[]
+        {
+            PingSample.Reply(At, 20), PingSample.Reply(At, 20),
+            PingSample.Reply(At, 20), PingSample.Reply(At, 20)
+        };
+        var swinging = new[]
+        {
+            PingSample.Reply(At, 5), PingSample.Reply(At, 35),
+            PingSample.Reply(At, 5), PingSample.Reply(At, 35)
+        };
+
+        var steadyStats = PingStatisticsCalculator.Calculate(steady);
+        var swingingStats = PingStatisticsCalculator.Calculate(swinging);
+
+        Assert.Equal(swingingStats.AvgMs, steadyStats.AvgMs);
+        Assert.Equal(0, steadyStats.JitterMs);
+        Assert.Equal(30, swingingStats.JitterMs);
+    }
+
+    [Fact]
+    public void Jitter_WithASingleReply_IsUnknownRatherThanZero()
+    {
+        // One reply gives no pair to compare, and reporting zero would claim a steadiness
+        // that was never observed.
+        var statistics = PingStatisticsCalculator.Calculate(new[] { PingSample.Reply(At, 42) });
+
+        Assert.Null(statistics.JitterMs);
+        Assert.Equal(42, statistics.P95Ms);
+    }
+
+    [Fact]
+    public void Calculate_WithNoReplies_LeavesSteadinessUnknown()
+    {
+        var statistics = PingStatisticsCalculator.Calculate(
+            new[] { PingSample.Timeout(At), PingSample.Timeout(At) });
+
+        Assert.Null(statistics.JitterMs);
+        Assert.Null(statistics.P95Ms);
+    }
+
+    [Fact]
+    public void P95_IsNotMovedByASingleOutlierInTwenty()
+    {
+        // Nineteen good samples and one terrible one. The average is dragged to 39 ms by
+        // that single spike — a figure no packet actually experienced — while p95 keeps
+        // reporting what the connection does almost all of the time. The spike is still
+        // visible, as the maximum.
+        var samples = Enumerable.Repeat(PingSample.Reply(At, 20), 19)
+            .Append(PingSample.Reply(At, 400))
+            .ToArray();
+
+        var statistics = PingStatisticsCalculator.Calculate(samples);
+
+        Assert.Equal(20, statistics.P95Ms);
+        Assert.Equal(400, statistics.MaxMs);
+        Assert.Equal(39, statistics.AvgMs);
+    }
+
+    [Fact]
+    public void P95_RisesOnceTheTailIsNoLongerASingleSpike()
+    {
+        // Two bad samples in twenty is 10% of the traffic, and now the tail is the story.
+        var samples = Enumerable.Repeat(PingSample.Reply(At, 20), 18)
+            .Concat(Enumerable.Repeat(PingSample.Reply(At, 400), 2))
+            .ToArray();
+
+        var statistics = PingStatisticsCalculator.Calculate(samples);
+
+        Assert.Equal(400, statistics.P95Ms);
+    }
+
+    [Fact]
+    public void P95_ReturnsAMeasuredValue_NotAnInterpolatedOne()
+    {
+        var samples = new[]
+        {
+            PingSample.Reply(At, 10), PingSample.Reply(At, 20), PingSample.Reply(At, 30)
+        };
+
+        var statistics = PingStatisticsCalculator.Calculate(samples);
+
+        Assert.Equal(30, statistics.P95Ms);
+    }
+
+    [Fact]
     public void Calculate_WithAllTimeouts_Reports100PercentLoss()
     {
         var samples = new[]

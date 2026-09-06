@@ -19,6 +19,13 @@ public sealed record WaveSettings
     public string? LogsDirectory { get; init; }
 
     /// <summary>
+    /// Default ping target for this device; null means the built-in one. The operator can
+    /// override it per test, which is why every run records the target it actually used —
+    /// otherwise two rows of the history would stop being comparable without saying so.
+    /// </summary>
+    public string? PingTargetHost { get; init; }
+
+    /// <summary>
     /// PBKDF2 hash of the administrator password, or null while no password has been set.
     /// Absent by design on a fresh install: the operator path costs nothing until someone
     /// reaches for an administrator action.

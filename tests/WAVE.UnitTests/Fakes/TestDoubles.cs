@@ -202,11 +202,23 @@ internal sealed class FakePingMonitor : IContinuousPingMonitor
     /// <summary>Host the orchestrator asked to ping.</summary>
     public string? Host { get; private set; }
 
+    /// <summary>
+    /// Samples emitted the moment the monitor starts. The orchestrator is still in its
+    /// idle baseline then, so these land in the at-rest bucket — which is what makes the
+    /// phase split testable without waiting on real time.
+    /// </summary>
+    public List<PingSample> EmitOnStart { get; } = new();
+
     public void Start(string host)
     {
         Started = true;
         IsRunning = true;
         Host = host;
+
+        foreach (var sample in EmitOnStart)
+        {
+            Emit(sample);
+        }
     }
 
     public Task StopAsync()
@@ -234,10 +246,14 @@ internal sealed class FakeSpeedMeter : ISpeedMeter
 
     public bool Called { get; private set; }
 
+    /// <summary>Runs while the orchestrator considers the link saturated.</summary>
+    public Action? DuringMeasure { get; set; }
+
     public Task<SpeedResult> MeasureAsync(
         IProgress<SpeedSample>? progress = null, CancellationToken cancellationToken = default)
     {
         Called = true;
+        DuringMeasure?.Invoke();
         progress?.Report(new SpeedSample(SpeedPhase.Download, _result.DownloadMbps));
         progress?.Report(new SpeedSample(SpeedPhase.Upload, _result.UploadMbps));
         return Task.FromResult(_result);

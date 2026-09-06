@@ -37,13 +37,20 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
     private readonly TestRunnerOptions _options;
 
     private readonly object _gate = new();
-    private readonly List<PingSample> _samples = new();
+
+    // Kept apart rather than tagged after the fact: the phase is known when the sample
+    // arrives, and reconstructing it later from timestamps would be guesswork.
+    private readonly List<PingSample> _idleSamples = new();
+    private readonly List<PingSample> _loadSamples = new();
+
+    private bool _underLoad;
 
     private int _running;
     private bool _profileCreatedThisRun;
     private Guid _runId;
     private DateTimeOffset _startedAt;
     private string _target = string.Empty;
+    private string _pingTarget = string.Empty;
     private TestMedium _medium = TestMedium.WiFi;
     private SpeedResult? _speed;
     private StreamingObservation? _streaming;
@@ -93,6 +100,7 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
     public async Task<Result> RunWifiTestAsync(
         WifiNetworkProfile profile,
         WifiSecret? providedSecret = null,
+        string? pingTarget = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(profile);
@@ -105,7 +113,7 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
 
         try
         {
-            BeginSession(profile.Ssid, TestMedium.WiFi);
+            BeginSession(profile.Ssid, TestMedium.WiFi, pingTarget);
             SetState(TestOperationState.Connecting, profile.Ssid);
 
             // Reuses the profile Windows already has saved: in those cases there is no
@@ -165,7 +173,8 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
         }
     }
 
-    public async Task<Result> RunWiredTestAsync(CancellationToken cancellationToken = default)
+    public async Task<Result> RunWiredTestAsync(
+        string? pingTarget = null, CancellationToken cancellationToken = default)
     {
         var start = TryStart();
         if (start.IsFailure)
@@ -177,7 +186,7 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
         {
             var link = await _ethernet.DetectAsync(cancellationToken).ConfigureAwait(false);
 
-            BeginSession(link?.InterfaceName ?? UnknownWiredTarget, TestMedium.Ethernet);
+            BeginSession(link?.InterfaceName ?? UnknownWiredTarget, TestMedium.Ethernet, pingTarget);
             SetState(TestOperationState.Connecting, _target);
 
             if (link is null)
@@ -253,13 +262,35 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
     {
         SetState(TestOperationState.TestRunning, target);
 
-        _pingMonitor.Start(_options.PingTargetHost);
+        _pingMonitor.Start(_pingTarget);
+
+        // Baseline first, with nothing else on the link. Without this window every sample
+        // would be taken while the throughput measurement saturates the connection, and the
+        // loaded latency would have nothing to be compared against.
+        await Task.Delay(_options.IdleBaselineDuration, cancellationToken).ConfigureAwait(false);
 
         // Measures throughput and streaming stability in the app itself (no browser) and
         // records the numbers for auditing. Failures are tolerated: the test continues and
-        // the corresponding field is left without a value.
-        await MeasureSpeedAsync(cancellationToken).ConfigureAwait(false);
-        await MeasureStreamingAsync(cancellationToken).ConfigureAwait(false);
+        // the corresponding field is left without a value. The ping keeps running here on
+        // purpose — latency under saturation is the point.
+        SetUnderLoad(true);
+        try
+        {
+            await MeasureSpeedAsync(cancellationToken).ConfigureAwait(false);
+            await MeasureStreamingAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            SetUnderLoad(false);
+        }
+    }
+
+    private void SetUnderLoad(bool underLoad)
+    {
+        lock (_gate)
+        {
+            _underLoad = underLoad;
+        }
     }
 
     private async Task MeasureSpeedAsync(CancellationToken cancellationToken)
@@ -374,25 +405,28 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
     {
         lock (_gate)
         {
-            _samples.Add(sample);
+            (_underLoad ? _loadSamples : _idleSamples).Add(sample);
         }
 
         PingSampled?.Invoke(this, sample);
     }
 
-    private void BeginSession(string target, TestMedium medium)
+    private void BeginSession(string target, TestMedium medium, string? pingTarget)
     {
         _runId = Guid.NewGuid();
         _startedAt = _clock.Now;
         _target = target;
         _medium = medium;
+        _pingTarget = string.IsNullOrWhiteSpace(pingTarget) ? _options.PingTargetHost : pingTarget.Trim();
         _profileCreatedThisRun = false;
         _speed = null;
         _streaming = null;
 
         lock (_gate)
         {
-            _samples.Clear();
+            _underLoad = false;
+            _idleSamples.Clear();
+            _loadSamples.Clear();
         }
     }
 
@@ -405,10 +439,14 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
             return;
         }
 
-        PingStatistics statistics;
+        PingStatistics overall;
+        PingStatistics idle;
+        PingStatistics underLoad;
         lock (_gate)
         {
-            statistics = PingStatisticsCalculator.Calculate(_samples);
+            idle = PingStatisticsCalculator.Calculate(_idleSamples);
+            underLoad = PingStatisticsCalculator.Calculate(_loadSamples);
+            overall = PingStatisticsCalculator.Calculate([.. _idleSamples, .. _loadSamples]);
         }
 
         var run = new TestRun
@@ -421,7 +459,10 @@ public sealed class ConnectivityTestOrchestrator : IConnectivityTestOrchestrator
             FinishedAt = _clock.Now,
             FinalState = finalState,
             FailureReason = reason,
-            Ping = statistics,
+            PingTarget = _pingTarget,
+            Ping = overall,
+            PingIdle = idle.Sent > 0 ? idle : null,
+            PingUnderLoad = underLoad.Sent > 0 ? underLoad : null,
             Speed = _speed,
             Streaming = _streaming
         };

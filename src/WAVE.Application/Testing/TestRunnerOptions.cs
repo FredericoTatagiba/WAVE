@@ -9,6 +9,22 @@ public sealed class TestRunnerOptions
     /// <summary>Target host for the continuous ping.</summary>
     public string PingTargetHost { get; init; } = "google.com";
 
+    /// <summary>
+    /// Interval between pings. Fast enough that jitter and the 95th percentile are computed
+    /// over a real sample instead of the dozen or so readings a one-second cadence would
+    /// leave in a short test — a percentile over fifteen points is just the maximum wearing
+    /// a different name.
+    /// </summary>
+    public TimeSpan PingInterval { get; init; } = TimeSpan.FromMilliseconds(200);
+
+    /// <summary>
+    /// Window pinged with the link at rest, before the throughput measurement saturates it.
+    /// It is what makes the loaded latency comparable to something: the gap between the two
+    /// is the bufferbloat that decides whether a call or a game survives someone starting a
+    /// download on the same link.
+    /// </summary>
+    public TimeSpan IdleBaselineDuration { get; init; } = TimeSpan.FromSeconds(4);
+
     /// <summary>Download endpoint used to measure throughput (returns N bytes).</summary>
     public string SpeedDownloadUrl { get; init; } = "https://speed.cloudflare.com/__down?bytes=52428800";
 

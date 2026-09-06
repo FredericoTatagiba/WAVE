@@ -23,6 +23,12 @@ public static class HistoryReport
         new HistoryColumn("Resultado", run => run.Succeeded ? "Sucesso" : "Falha"),
         new HistoryColumn("Motivo da falha", run => FailureText(run.FailureReason)),
         new HistoryColumn("Latência média (ms)", run => run.Ping.Received > 0 ? run.Ping.AvgMs : (object?)null),
+        new HistoryColumn("Alvo do ping", run => run.PingTarget),
+        new HistoryColumn("Jitter (ms)", run => run.Ping.JitterMs),
+        new HistoryColumn("Latência p95 (ms)", run => run.Ping.P95Ms),
+        new HistoryColumn("Latência ociosa (ms)", run => Average(run.PingIdle)),
+        new HistoryColumn("Latência sob carga (ms)", run => Average(run.PingUnderLoad)),
+        new HistoryColumn("Bufferbloat (ms)", run => run.BufferbloatMs),
         new HistoryColumn("Perda de pacotes (%)", run => run.Ping.PacketLossPercent),
         new HistoryColumn("Pacotes enviados", run => run.Ping.Sent),
         new HistoryColumn("Pacotes recebidos", run => run.Ping.Received),
@@ -30,6 +36,10 @@ public static class HistoryReport
         new HistoryColumn("Upload (Mbps)", run => run.Speed?.UploadMbps),
         new HistoryColumn("Streaming", run => run.Streaming is { } streaming ? StreamingText(streaming.Stability) : null)
     };
+
+    /// <summary>Average of a phase, or null when the phase produced no replies.</summary>
+    private static object? Average(PingStatistics? statistics) =>
+        statistics is { Received: > 0 } value ? value.AvgMs : null;
 
     public static string MediumText(TestMedium medium) => medium switch
     {
