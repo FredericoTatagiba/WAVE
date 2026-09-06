@@ -1,16 +1,14 @@
 using WAVE.Application.Profiles;
-using WAVE.Application.Security;
 using WAVE.Domain.Networking;
-using WAVE.Domain.Security;
 using WAVE.UnitTests.Fakes;
 using Xunit;
 
 namespace WAVE.UnitTests;
 
 /// <summary>
-/// Covers profile management, focused on the "remember the network on selection"
-/// improvement: <see cref="NetworkProfileService.RememberForTestingAsync"/> must
-/// persist profile + credential for future tests, under operator RBAC.
+/// Covers profile management and the line between the two ways a network gets persisted:
+/// curating the catalog is an administrator action, while remembering a network the
+/// operator just connected to is part of running a test and needs no password.
 /// </summary>
 public class NetworkProfileServiceTests
 {
@@ -21,24 +19,18 @@ public class NetworkProfileServiceTests
         new("RedeAberta", "Rede Aberta", SecurityType.Open);
 
     private static (NetworkProfileService Service, FakeNetworkProfileRepository Repo, FakeCredentialStore Store)
-        BuildFor(UserRole role)
+        Build(bool adminUnlocked)
     {
-        var context = new CurrentUserContext();
-        if (role == UserRole.Administrator)
-        {
-            context.Set(UserRole.Administrator, "Admin");
-        }
-
         var repo = new FakeNetworkProfileRepository();
         var store = new FakeCredentialStore();
-        var service = new NetworkProfileService(repo, store, new AuthorizationService(context));
+        var service = new NetworkProfileService(repo, store, new FakeAdminSession(adminUnlocked));
         return (service, repo, store);
     }
 
     [Fact]
-    public async Task RememberForTesting_AsOperator_PersistsProfileAndCredential()
+    public async Task RememberForTesting_WhileLocked_PersistsProfileAndCredential()
     {
-        var (service, repo, store) = BuildFor(UserRole.Operator);
+        var (service, repo, store) = Build(adminUnlocked: false);
         var profile = ProtectedProfile();
         var secret = new WifiSecret("senha-super");
 
@@ -53,7 +45,7 @@ public class NetworkProfileServiceTests
     [Fact]
     public async Task RememberForTesting_ProtectedWithoutSecret_FailsAndPersistsNothing()
     {
-        var (service, repo, store) = BuildFor(UserRole.Operator);
+        var (service, repo, store) = Build(adminUnlocked: false);
 
         var result = await service.RememberForTestingAsync(ProtectedProfile(), secret: null);
 
@@ -65,7 +57,7 @@ public class NetworkProfileServiceTests
     [Fact]
     public async Task RememberForTesting_OpenNetwork_PersistsProfileWithoutCredential()
     {
-        var (service, repo, store) = BuildFor(UserRole.Operator);
+        var (service, repo, store) = Build(adminUnlocked: false);
         var profile = OpenProfile();
 
         var result = await service.RememberForTestingAsync(profile, secret: null);
@@ -76,25 +68,11 @@ public class NetworkProfileServiceTests
     }
 
     [Fact]
-    public async Task RememberForTesting_WhenUnauthorized_FailsAndPersistsNothing()
+    public async Task Save_WhileLocked_FailsButRememberStillWorks()
     {
-        var repo = new FakeNetworkProfileRepository();
-        var store = new FakeCredentialStore();
-        var service = new NetworkProfileService(repo, store, new FakeAuthorizationService(allow: false));
-
-        var result = await service.RememberForTestingAsync(ProtectedProfile(), new WifiSecret("x"));
-
-        Assert.True(result.IsFailure);
-        Assert.Empty(repo.Profiles);
-        Assert.Empty(store.Saved);
-    }
-
-    [Fact]
-    public async Task Operator_CannotCurateCatalog_ButCanRememberNetwork()
-    {
-        // SaveAsync curates the catalog (ManageProfiles: admin). The operator cannot,
-        // but CAN remember a just-selected network (RunTest).
-        var (service, repo, _) = BuildFor(UserRole.Operator);
+        // Curating the catalog needs the administrator password; remembering the network
+        // the operator just connected to is part of the test and must not.
+        var (service, repo, _) = Build(adminUnlocked: false);
         var profile = ProtectedProfile();
         var secret = new WifiSecret("senha");
 
@@ -107,9 +85,9 @@ public class NetworkProfileServiceTests
     }
 
     [Fact]
-    public async Task Administrator_CanCurateCatalog()
+    public async Task Save_WhenUnlocked_CuratesCatalog()
     {
-        var (service, repo, store) = BuildFor(UserRole.Administrator);
+        var (service, repo, store) = Build(adminUnlocked: true);
         var profile = ProtectedProfile();
 
         var result = await service.SaveAsync(profile, new WifiSecret("senha"));
@@ -117,5 +95,17 @@ public class NetworkProfileServiceTests
         Assert.True(result.IsSuccess);
         Assert.Contains(repo.Profiles, p => p.Ssid == profile.Ssid);
         Assert.True(store.Saved.ContainsKey(profile.Ssid));
+    }
+
+    [Fact]
+    public async Task Delete_WhileLocked_IsRejected()
+    {
+        var (service, repo, _) = Build(adminUnlocked: false);
+        await service.RememberForTestingAsync(OpenProfile(), secret: null);
+
+        var result = await service.DeleteAsync("RedeAberta");
+
+        Assert.True(result.IsFailure);
+        Assert.Contains(repo.Profiles, p => p.Ssid == "RedeAberta");
     }
 }

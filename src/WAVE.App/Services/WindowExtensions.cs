@@ -8,10 +8,9 @@ internal static class WindowExtensions
     /// Shows a window with no owner and completes when it closes.
     /// </summary>
     /// <remarks>
-    /// Avalonia's <c>ShowDialog</c> requires an owner window, which does not exist during
-    /// startup — the login runs before the main window is created. This fills that gap:
-    /// the window is shown normally and its <c>Closed</c> event completes the task, so the
-    /// caller can still await it the way it awaited WPF's blocking ShowDialog.
+    /// Avalonia's <c>ShowDialog</c> requires an owner window. The main window now exists
+    /// for the whole life of the app, so this is a fallback rather than a normal path: it
+    /// keeps a prompt from being swallowed if it is ever raised before the shell is up.
     /// </remarks>
     public static Task ShowStandaloneAsync(this Window window)
     {

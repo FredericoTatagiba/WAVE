@@ -11,7 +11,6 @@ using WAVE.Application.Profiles;
 using WAVE.Application.Testing;
 using WAVE.Domain.Common;
 using WAVE.Domain.Networking;
-using WAVE.Domain.Security;
 using WAVE.Domain.Testing;
 
 namespace WAVE.App.ViewModels;
@@ -23,8 +22,8 @@ public sealed class MainViewModel : ObservableObject
     private readonly NetworkProfileService _profiles;
     private readonly NetworkDiscoveryService _discovery;
     private readonly IEthernetLinkProbe _ethernet;
-    private readonly TestHistoryService _history;
-    private readonly ICurrentUserContext _currentUser;
+    private readonly ITestRunRepository _history;
+    private readonly IAdminGate _adminGate;
     private readonly IUserAlerts _alerts;
     private readonly IAppLogger _logger;
     private readonly TestRunnerOptions _options;
@@ -48,8 +47,8 @@ public sealed class MainViewModel : ObservableObject
         NetworkProfileService profiles,
         NetworkDiscoveryService discovery,
         IEthernetLinkProbe ethernet,
-        TestHistoryService history,
-        ICurrentUserContext currentUser,
+        ITestRunRepository history,
+        IAdminGate adminGate,
         IUserAlerts alerts,
         IAppLogger logger,
         TestRunnerOptions options,
@@ -63,7 +62,7 @@ public sealed class MainViewModel : ObservableObject
         _discovery = discovery;
         _ethernet = ethernet;
         _history = history;
-        _currentUser = currentUser;
+        _adminGate = adminGate;
         _alerts = alerts;
         _logger = logger;
         _options = options;
@@ -85,7 +84,6 @@ public sealed class MainViewModel : ObservableObject
         _orchestrator.StateChanged += OnStateChanged;
         _orchestrator.PingSampled += OnPingSampled;
         _orchestrator.SpeedSampled += OnSpeedSampled;
-        _currentUser.Changed += OnUserChanged;
     }
 
     public ObservableCollection<NetworkButtonViewModel> Networks { get; } = new();
@@ -142,12 +140,6 @@ public sealed class MainViewModel : ObservableObject
             }
         }
     }
-
-    public string RoleName => _currentUser.Role == UserRole.Administrator ? "Administrador" : "Operador";
-
-    public bool IsAdministrator => _currentUser.Role == UserRole.Administrator;
-
-    public string CurrentUserText => $"{_currentUser.UserName} · {RoleName}";
 
     public bool HasStatus => !string.IsNullOrEmpty(_statusMessage);
 
@@ -219,11 +211,19 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Security options for the registration form (admin).</summary>
     public Array SecurityOptions { get; } = Enum.GetValues(typeof(SecurityType));
 
-    /// <summary>Registers/updates a network (Administrator operation).</summary>
+    /// <summary>
+    /// Registers/updates a network. Administrator action: the password is asked here, at
+    /// the moment it is needed, rather than at a sign-in screen nobody else has to pass.
+    /// </summary>
     public async Task AddNetworkAsync(
         string displayName, string ssid, SecurityType security, string password,
         string? username = null, string? domain = null)
     {
+        if (!await _adminGate.EnsureUnlockedAsync().ConfigureAwait(true))
+        {
+            return;
+        }
+
         WifiNetworkProfile profile;
         try
         {
@@ -457,16 +457,12 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task LoadHistoryAsync()
     {
-        var result = await _history.GetRecentAsync(_options.MaxHistoryEntries).ConfigureAwait(false);
-        if (result.IsFailure)
-        {
-            return;
-        }
+        var runs = await _history.GetRecentAsync(_options.MaxHistoryEntries).ConfigureAwait(false);
 
         RunOnUi(() =>
         {
             _allRuns.Clear();
-            _allRuns.AddRange(result.Value);
+            _allRuns.AddRange(runs);
             RefreshHistoryView();
         });
     }
@@ -602,13 +598,6 @@ public sealed class MainViewModel : ObservableObject
     private void OnPingSampled(object? sender, PingSample sample) => RunOnUi(() => Telemetry.AddSample(sample));
 
     private void OnSpeedSampled(object? sender, SpeedSample sample) => RunOnUi(() => Telemetry.AddSpeedSample(sample));
-
-    private void OnUserChanged(object? sender, EventArgs e) => RunOnUi(() =>
-    {
-        OnPropertyChanged(nameof(RoleName));
-        OnPropertyChanged(nameof(IsAdministrator));
-        OnPropertyChanged(nameof(CurrentUserText));
-    });
 
     /// <summary>
     /// Marshals a mutation onto the UI thread. Invoke already runs inline when called

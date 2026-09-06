@@ -1,21 +1,67 @@
 using WAVE.Application.Abstractions;
+using WAVE.Application.Configuration;
 using WAVE.Domain.Common;
 using WAVE.Domain.Networking;
-using WAVE.Domain.Security;
 using WAVE.Domain.Testing;
 
 namespace WAVE.UnitTests.Fakes;
 
-internal sealed class FakeAuthorizationService : IAuthorizationService
+internal sealed class FakeAdminSession : IAdminSession
 {
-    private readonly bool _allow;
+    public FakeAdminSession(bool unlocked = false) => IsUnlocked = unlocked;
 
-    public FakeAuthorizationService(bool allow) => _allow = allow;
+    public bool IsConfigured { get; private set; }
 
-    public bool HasPermission(Permission permission) => _allow;
+    public bool IsUnlocked { get; private set; }
 
-    public Result Authorize(Permission permission) =>
-        _allow ? Result.Success() : Result.Failure("Acesso negado.");
+#pragma warning disable CS0067 // Not raised: no test observes the change notification.
+    public event EventHandler? Changed;
+#pragma warning restore CS0067
+
+    public Task<Result> ConfigureAsync(string password, CancellationToken cancellationToken = default)
+    {
+        IsConfigured = true;
+        IsUnlocked = true;
+        return Task.FromResult(Result.Success());
+    }
+
+    public Task<Result> UnlockAsync(string password, CancellationToken cancellationToken = default)
+    {
+        IsUnlocked = true;
+        return Task.FromResult(Result.Success());
+    }
+
+    public Task<Result> ChangePasswordAsync(
+        string currentPassword, string newPassword, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Result.Success());
+
+    public void Lock() => IsUnlocked = false;
+
+    public Result RequireUnlocked() =>
+        IsUnlocked ? Result.Success() : Result.Failure("Ação restrita ao administrador.");
+}
+
+internal sealed class FakeSettingsStore : ISettingsStore
+{
+    public FakeSettingsStore(WaveSettings? initial = null) => Current = initial ?? new WaveSettings();
+
+    public WaveSettings Current { get; private set; }
+
+    public event EventHandler? Changed;
+
+    public Task SaveAsync(WaveSettings settings, CancellationToken cancellationToken = default)
+    {
+        Current = settings;
+        Changed?.Invoke(this, EventArgs.Empty);
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class FakeDeviceIdentity : IDeviceIdentity
+{
+    public FakeDeviceIdentity(string name = "TABLET-01") => Name = name;
+
+    public string Name { get; }
 }
 
 internal sealed class FakeCredentialStore : ICredentialStore
@@ -235,39 +281,6 @@ internal sealed class FakePasswordHasher : IPasswordHasher
     public string Hash(string password) => Prefix + password;
 
     public bool Verify(string password, string hash) => hash == Prefix + password;
-}
-
-internal sealed class FakeUserRepository : IUserRepository
-{
-    private readonly List<(UserAccount User, string Hash)> _users = new();
-
-    public Task<bool> HasAnyAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult(_users.Count > 0);
-
-    public Task<IReadOnlyList<UserAccount>> GetAllAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<UserAccount>>(_users.Select(u => u.User).ToList());
-
-    public Task<UserAccount?> FindByUsernameAsync(string username, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_users
-            .Where(u => string.Equals(u.User.Username, username, StringComparison.OrdinalIgnoreCase))
-            .Select(u => u.User)
-            .FirstOrDefault());
-
-    public Task<string?> GetPasswordHashAsync(Guid userId, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_users.Where(u => u.User.Id == userId).Select(u => u.Hash).FirstOrDefault());
-
-    public Task UpsertAsync(UserAccount user, string passwordHash, CancellationToken cancellationToken = default)
-    {
-        _users.RemoveAll(u => u.User.Id == user.Id);
-        _users.Add((user, passwordHash));
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        _users.RemoveAll(u => u.User.Id == userId);
-        return Task.CompletedTask;
-    }
 }
 
 /// <summary>Clock that advances by a fixed step on each read (to test timeouts).</summary>

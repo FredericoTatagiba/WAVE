@@ -9,13 +9,12 @@ using WAVE.Application.Networking;
 using WAVE.Application.Profiles;
 using WAVE.Application.Security;
 using WAVE.Application.Testing;
-using WAVE.Application.Users;
+using WAVE.Infrastructure.Configuration;
 using WAVE.Infrastructure.Diagnostics;
 using WAVE.Infrastructure.Ethernet;
 using WAVE.Infrastructure.Export;
 using WAVE.Infrastructure.Logging;
 using WAVE.Infrastructure.Persistence;
-using WAVE.Infrastructure.Process;
 using WAVE.Infrastructure.Security;
 using WAVE.Infrastructure.Time;
 using WAVE.Infrastructure.Web;
@@ -39,20 +38,21 @@ public static class ServiceRegistration
     private static void AddApplication(IServiceCollection services)
     {
         services.AddSingleton(new TestRunnerOptions());
-        services.AddSingleton<ICurrentUserContext, CurrentUserContext>();
-        services.AddSingleton<IAuthorizationService, AuthorizationService>();
-        services.AddSingleton<AuthenticationService>();
-        services.AddSingleton<UserManagementService>();
+        services.AddSingleton<IAdminSession, AdminSession>();
         services.AddSingleton<IWifiProfileXmlFactory, WlanProfileXmlBuilder>();
         services.AddSingleton<IConnectivityTestOrchestrator, ConnectivityTestOrchestrator>();
         services.AddSingleton<NetworkProfileService>();
-        services.AddSingleton<TestHistoryService>();
         services.AddSingleton<HistoryExportService>();
         services.AddSingleton<NetworkDiscoveryService>();
     }
 
     private static void AddInfrastructure(IServiceCollection services)
     {
+        // The settings and the paths they resolve come first: the logger writes to a
+        // configured directory, so it cannot itself be a dependency of the settings store.
+        services.AddSingleton<ISettingsStore, JsonSettingsStore>();
+        services.AddSingleton<WaveDataPaths>();
+        services.AddSingleton<IDeviceIdentity, MachineDeviceIdentity>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IAppLogger, FileAppLogger>();
         AddPlatformServices(services);
@@ -67,7 +67,6 @@ public static class ServiceRegistration
         services.AddSingleton<INetworkProfileRepository, JsonNetworkProfileRepository>();
         services.AddSingleton<ITestRunRepository, JsonTestRunRepository>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
-        services.AddSingleton<IUserRepository, JsonUserRepository>();
     }
 
     /// <summary>
@@ -97,12 +96,12 @@ public static class ServiceRegistration
         services.AddSingleton<IUserAlerts, MessageBoxUserAlerts>();
         services.AddSingleton<ICredentialPrompt, CredentialPromptService>();
         services.AddSingleton<IExportFileDialog, StorageProviderExportFileDialog>();
+        services.AddSingleton<IAdminGate, AdminGateService>();
         services.AddSingleton<AppNavigator>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
-        services.AddTransient<LoginViewModel>();
-        services.AddTransient<LoginWindow>();
-        services.AddTransient<UserManagementViewModel>();
-        services.AddTransient<UserManagementWindow>();
+        services.AddTransient<AdminPasswordWindow>();
+        services.AddTransient<SettingsViewModel>();
+        services.AddTransient<SettingsWindow>();
     }
 }

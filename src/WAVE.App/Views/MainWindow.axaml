@@ -31,16 +31,10 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding CurrentUserText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0" />
-
-                    <Button Content="Usuários" Click="OnUsersClick"
-                            IsVisible="{Binding IsAdministrator}"
-                            Classes="action" Margin="0,0,8,0" />
-
                     <Button Content="Parar teste" Command="{Binding StopCommand}"
                             Classes="action" Margin="0,0,8,0" />
 
-                    <Button Content="Sair" Click="OnLogoutClick" Classes="action" />
+                    <Button Content="Configurações" Click="OnSettingsClick" Classes="action" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -71,9 +65,9 @@
                                     Command="{Binding ScanCommand}" Classes="action" />
                         </DockPanel>
 
-                        <!-- Network registration: its own component, visible only to the Administrator (RBAC) -->
-                        <ctrl:AddNetworkPanel DockPanel.Dock="Bottom"
-                                              IsVisible="{Binding IsAdministrator}" />
+                        <!-- Network registration: its own component. Always visible; saving
+                             is what asks for the administrator password. -->
+                        <ctrl:AddNetworkPanel DockPanel.Dock="Bottom" />
 
                         <!-- The cable is a single fixed target, so it sits outside the
                              scrolling Wi-Fi list and stays reachable however many access

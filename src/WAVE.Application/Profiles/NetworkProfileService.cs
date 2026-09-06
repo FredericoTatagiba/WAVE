@@ -1,30 +1,28 @@
 using WAVE.Application.Abstractions;
 using WAVE.Domain.Common;
 using WAVE.Domain.Networking;
-using WAVE.Domain.Security;
 
 namespace WAVE.Application.Profiles;
 
 /// <summary>
-/// Profile management use cases. Sensitive operation: saving/deleting requires the
-/// <see cref="Permission.ManageProfiles"/> permission, validated here in the
-/// Application (not only in the UI). Only listing is allowed to the operator,
-/// since it is needed to build the test buttons.
+/// Profile management use cases. Curating the catalog — saving and deleting — is an
+/// administrator action, validated here in the Application layer and not only in the UI.
+/// Listing stays open, since it is what builds the test buttons.
 /// </summary>
 public sealed class NetworkProfileService
 {
     private readonly INetworkProfileRepository _repository;
     private readonly ICredentialStore _credentials;
-    private readonly IAuthorizationService _authorization;
+    private readonly IAdminSession _admin;
 
     public NetworkProfileService(
         INetworkProfileRepository repository,
         ICredentialStore credentials,
-        IAuthorizationService authorization)
+        IAdminSession admin)
     {
         _repository = repository;
         _credentials = credentials;
-        _authorization = authorization;
+        _admin = admin;
     }
 
     public Task<IReadOnlyList<WifiNetworkProfile>> GetAllAsync(CancellationToken cancellationToken = default) =>
@@ -35,7 +33,7 @@ public sealed class NetworkProfileService
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        var authorization = _authorization.Authorize(Permission.ManageProfiles);
+        var authorization = _admin.RequireUnlocked();
         if (authorization.IsFailure)
         {
             return authorization;
@@ -46,48 +44,27 @@ public sealed class NetworkProfileService
             return Result.Failure("Rede protegida exige uma credencial.");
         }
 
-        await _repository.SaveAsync(profile, cancellationToken).ConfigureAwait(false);
-
-        if (secret is not null)
-        {
-            await _credentials.SaveAsync(profile.Ssid, secret, cancellationToken).ConfigureAwait(false);
-        }
-
-        return Result.Success();
+        return await StoreAsync(profile, secret, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Remembers a just-selected network (profile + credential) for the next tests.
-    /// Unlike <see cref="SaveAsync"/> (the catalog curation, which belongs to the
-    /// Administrator), this is an operator action during a test: it requires only
-    /// <see cref="Permission.RunTest"/>. This way, when tapping a network still unknown
-    /// to the system and entering the password, the network becomes available for
-    /// re-tests without typing the password again.
+    /// Unlike <see cref="SaveAsync"/> — curating the catalog, an administrator action —
+    /// this happens during a test and needs no password: tapping a network still unknown
+    /// to the system and entering its passphrase makes it available for re-tests without
+    /// typing the passphrase again.
     /// </summary>
     public async Task<Result> RememberForTestingAsync(
         WifiNetworkProfile profile, WifiSecret? secret, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        var authorization = _authorization.Authorize(Permission.RunTest);
-        if (authorization.IsFailure)
-        {
-            return authorization;
-        }
-
         if (profile.RequiresCredential && secret is null)
         {
             return Result.Failure("Rede protegida exige uma credencial.");
         }
 
-        await _repository.SaveAsync(profile, cancellationToken).ConfigureAwait(false);
-
-        if (secret is not null)
-        {
-            await _credentials.SaveAsync(profile.Ssid, secret, cancellationToken).ConfigureAwait(false);
-        }
-
-        return Result.Success();
+        return await StoreAsync(profile, secret, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result> DeleteAsync(string ssid, CancellationToken cancellationToken = default)
@@ -97,7 +74,7 @@ public sealed class NetworkProfileService
             return Result.Failure("SSID inválido.");
         }
 
-        var authorization = _authorization.Authorize(Permission.ManageProfiles);
+        var authorization = _admin.RequireUnlocked();
         if (authorization.IsFailure)
         {
             return authorization;
@@ -105,6 +82,19 @@ public sealed class NetworkProfileService
 
         await _repository.DeleteAsync(ssid, cancellationToken).ConfigureAwait(false);
         await _credentials.DeleteAsync(ssid, cancellationToken).ConfigureAwait(false);
+        return Result.Success();
+    }
+
+    private async Task<Result> StoreAsync(
+        WifiNetworkProfile profile, WifiSecret? secret, CancellationToken cancellationToken)
+    {
+        await _repository.SaveAsync(profile, cancellationToken).ConfigureAwait(false);
+
+        if (secret is not null)
+        {
+            await _credentials.SaveAsync(profile.Ssid, secret, cancellationToken).ConfigureAwait(false);
+        }
+
         return Result.Success();
     }
 }
