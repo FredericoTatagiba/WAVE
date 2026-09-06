@@ -51,8 +51,14 @@ Everything else — scanning, testing Wi‑Fi and cable, viewing and exporting t
 ## Telemetry and auditing
 
 - **Live latency**: a chart of latency (ms) plus last / average / packet-loss indicators, computed from a background ping.
-- **History**: each run records network, medium (Wi‑Fi or cable), timestamp, the device it ran on, result (success/failure and reason) and ping statistics.
+- **Steadiness, not just speed**: **jitter** (mean variation between consecutive replies) and the **95th percentile**. A link parked at 20 ms and one swinging between 5 and 35 ms share an average; only the second one stutters, and only these two numbers tell them apart.
+- **Bufferbloat**: latency is measured twice — with the link at rest, then again while the throughput test saturates it. The gap between the two ("18 → 240 ms sob carga") is what decides whether a call or a game survives someone starting a download on the same link. An average that blends both phases describes neither.
+- **Pick what you are pinging**: the target sits next to the indicators it explains and can be changed per test — a raw IP takes DNS out of the path, and the gateway separates "my link" from "upstream". Every run records the target it used, so two rows of the history are never compared as if they measured the same thing when they did not. The device default lives in **Configurações**.
+- **History**: each run records network, medium (Wi‑Fi or cable), timestamp, the device it ran on, the ping target, result (success/failure and reason) and the full ping statistics.
+
 - **Where it is written**: by default `%LOCALAPPDATA%\WAVE`, but the history and log directories are configurable — point them at a share and the reports collect themselves. An unreachable target degrades to the local folder instead of losing the run.
+
+> These are ICMP measurements against a fixed host, sampled every 200 ms. They characterise the link, not a specific application: routers treat ICMP on a separate, often rate-limited path, and the route to `google.com` is not the route to a game or VoIP server.
 
 ## Architecture
 
